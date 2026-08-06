@@ -6,3 +6,143 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  passwordHash  String
+  displayName   String
+  avatarUrl     String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  sessions      UserSession[]
+  memberships   Membership[]
+  createdGroups Group[]         @relation("GroupCreator")
+  createdTodos  Todo[]          @relation("TodoCreator")
+  updatedTodos  Todo[]          @relation("TodoUpdater")
+  assignedTodos Todo[]          @relation("TodoAssignee")
+  invitations   Invitation[]    @relation("InvitationCreator")
+  activities    ActivityEvent[] @relation("ActivityPerformedBy")
+}
+
+model UserSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String
+  expiresAt        DateTime
+  lastSeenAt       DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+}
+
+model Group {
+  id          String          @id @default(cuid())
+  type        String
+  name        String
+  createdById String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  creator     User            @relation("GroupCreator", fields: [createdById], references: [id], onUpdate: Cascade)
+  memberships Membership[]
+  todoLists   TodoList[]
+  invitations Invitation[]
+  activities  ActivityEvent[]
+}
+
+model Membership {
+  groupId  String
+  userId   String
+  role     String
+  joinedAt DateTime @default(now())
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([groupId, userId])
+}
+
+model TodoList {
+  id        String   @id @default(cuid())
+  groupId   String
+  name      String
+  icon      String?
+  color     String?
+  rank      Decimal  @db.Decimal(20, 10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  todos     Todo[]
+
+  @@index([groupId])
+}
+
+model Todo {
+  id           String    @id @default(cuid())
+  todoListId   String
+  title        String
+  description  String?
+  status       Int       @default(10)
+  rank         Decimal   @db.Decimal(20, 10)
+  dueDate      DateTime?
+  completedAt  DateTime?
+  assignedToId String?
+  createdById  String
+  updatedById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  todoList     TodoList  @relation(fields: [todoListId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  assignee     User?     @relation("TodoAssignee", fields: [assignedToId], references: [id], onUpdate: Cascade)
+  createdBy    User      @relation("TodoCreator", fields: [createdById], references: [id], onUpdate: Cascade)
+  updatedBy    User?     @relation("TodoUpdater", fields: [updatedById], references: [id], onUpdate: Cascade)
+  subtasks     SubTask[]
+
+  @@index([todoListId])
+  @@index([status])
+  @@index([rank])
+}
+
+model SubTask {
+  id        String   @id @default(cuid())
+  todoId    String
+  title     String
+  completed Boolean  @default(false)
+  rank      Decimal  @db.Decimal(20, 10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  todo      Todo     @relation(fields: [todoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([todoId])
+}
+
+model Invitation {
+  id          String   @id @default(cuid())
+  groupId     String
+  invitedById String
+  email       String
+  token       String   @unique
+  status      String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  inviter     User     @relation("InvitationCreator", fields: [invitedById], references: [id], onUpdate: Cascade)
+
+  @@index([groupId])
+}
+
+model ActivityEvent {
+  id            String   @id @default(cuid())
+  groupId       String
+  performedById String
+  type          String
+  entityType    String
+  entityId      String
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  performedBy   User     @relation("ActivityPerformedBy", fields: [performedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([groupId, createdAt])
+  @@index([groupId, entityType, entityId])
+  @@index([entityType, entityId])
+}
