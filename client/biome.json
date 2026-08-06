@@ -42,6 +42,18 @@
   },
   "overrides": [
     {
+      "includes": ["src/api/generated/**"],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "enabled": false
+      },
+      "assist": {
+        "enabled": false
+      }
+    },
+    {
       "includes": ["src/shared/components/ui/**/*.tsx"],
       "linter": {
         "rules": {

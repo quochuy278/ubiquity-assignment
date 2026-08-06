@@ -1,0 +1,26 @@
+openapi: 3.0.0
+paths:
+  /api:
+    get:
+      operationId: AppController_getHello
+      parameters: []
+      responses:
+        "200":
+          description: ""
+      tags:
+        - app
+info:
+  title: Ubiquity API
+  description: Ubiquity Assignment API documentation
+  version: "1.0"
+  contact: {}
+tags:
+  - name: app
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas: {}

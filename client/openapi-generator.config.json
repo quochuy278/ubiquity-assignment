@@ -1,0 +1,19 @@
+{
+  "generatorName": "typescript-axios",
+  "inputSpec": "openapi/openapi.yml",
+  "outputDir": "src/api/generated",
+  "globalProperties": {
+    "apiDocs": false,
+    "apiTests": false,
+    "modelDocs": false,
+    "modelTests": false
+  },
+  "additionalProperties": {
+    "apiPackage": "apis",
+    "modelPackage": "models",
+    "supportsES6": true,
+    "useSingleRequestParameter": true,
+    "withInterfaces": true,
+    "withSeparateModelsAndApi": true
+  }
+}
