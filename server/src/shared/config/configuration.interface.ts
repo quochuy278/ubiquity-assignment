@@ -3,6 +3,9 @@ export interface ApplicationConfig {
     environment: string;
     port: number;
   };
+  auth: {
+    accessTokenSecret: string;
+  };
   database: {
     url: string;
     directUrl: string;

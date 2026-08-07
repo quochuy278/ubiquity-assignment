@@ -3,6 +3,9 @@ import type { ApplicationConfig } from '../configuration.interface';
 
 const developmentEnvironmentSchema = Joi.object({
   PORT: Joi.number().port().default(3000),
+  AUTH_ACCESS_TOKEN_SECRET: Joi.string()
+    .min(32)
+    .default('development-only-access-secret-change-me'),
   DATABASE_URL: Joi.string().required(),
   DIRECT_URL: Joi.string().required(),
 }).unknown(true);
@@ -21,6 +24,9 @@ export default (): ApplicationConfig => {
     app: {
       environment: process.env.NODE_ENV ?? 'development',
       port: value.PORT as number,
+    },
+    auth: {
+      accessTokenSecret: value.AUTH_ACCESS_TOKEN_SECRET as string,
     },
     database: {
       url: value.DATABASE_URL as string,

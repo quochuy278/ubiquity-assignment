@@ -3,6 +3,7 @@ import type { ApplicationConfig } from '../configuration.interface';
 
 const productionEnvironmentSchema = Joi.object({
   PORT: Joi.number().port().required(),
+  AUTH_ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
   DATABASE_URL: Joi.string().required(),
   DIRECT_URL: Joi.string().required(),
 }).unknown(true);
@@ -21,6 +22,9 @@ export default (): ApplicationConfig => {
     app: {
       environment: 'production',
       port: value.PORT as number,
+    },
+    auth: {
+      accessTokenSecret: value.AUTH_ACCESS_TOKEN_SECRET as string,
     },
     database: {
       url: value.DATABASE_URL as string,
