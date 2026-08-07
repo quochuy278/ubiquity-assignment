@@ -2,13 +2,11 @@
 
 ARG NODE_VERSION=24
 
-FROM node:${NODE_VERSION}-bookworm-slim AS base
+FROM node:${NODE_VERSION}-alpine AS base
 
 WORKDIR /usr/src/app
 
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends ca-certificates openssl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ca-certificates openssl
 
 FROM base AS build
 
