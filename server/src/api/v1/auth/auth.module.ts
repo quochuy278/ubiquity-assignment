@@ -37,5 +37,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     AuthUserRepository,
     AuthSessionRepository,
   ],
+  exports: [AccessTokenGuard],
 })
 export class AuthModule {}
