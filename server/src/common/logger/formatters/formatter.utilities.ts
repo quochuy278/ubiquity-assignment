@@ -1,6 +1,6 @@
 import type { Dayjs } from 'dayjs';
 import { keyBy } from 'lodash';
-import { now } from '../../../shared/time/time.utilities';
+import { now } from '../../../shared/utils/time.utilities';
 
 const MESSAGE_SEPARATOR = '*****';
 
