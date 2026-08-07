@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 import { GroupType } from '../../../../src/api/v1/group/group.constants';
 import { GroupService } from '../../../../src/api/v1/group/group.service';
@@ -19,16 +20,69 @@ describe('Group use-case orchestration', () => {
   };
   const findGroupIds = jest.fn();
   const isMember = jest.fn();
+  const createOwner = jest.fn();
+  const createGroup = jest.fn();
   const findByIds = jest.fn();
   const findById = jest.fn();
-  const memberships = { findGroupIds, isMember } as unknown as MembershipService;
-  const groups = { findByIds, findById } as unknown as GroupRepository;
-  const prisma = {} as PrismaService;
-  const logger = {} as ApplicationLoggerService;
+  const runTransaction = jest.fn();
+  const log = jest.fn();
+  const transaction = {} as Prisma.TransactionClient;
+  const memberships = {
+    createOwner,
+    findGroupIds,
+    isMember,
+  } as unknown as MembershipService;
+  const groups = { create: createGroup, findByIds, findById } as unknown as GroupRepository;
+  const prisma = { $transaction: runTransaction } as unknown as PrismaService;
+  const logger = { log } as unknown as ApplicationLoggerService;
   const service = new GroupService(prisma, groups, memberships, logger);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    runTransaction.mockImplementation(
+      (callback: (client: Prisma.TransactionClient) => Promise<unknown>) => callback(transaction),
+    );
+  });
+
+  it('creates the group and owner membership in the same transaction', async () => {
+    createGroup.mockResolvedValue(group);
+    createOwner.mockResolvedValue(undefined);
+
+    await expect(
+      service.create('user-1', { type: GroupType.SHARED, name: 'Family' }),
+    ).resolves.toEqual(group);
+
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(createGroup).toHaveBeenCalledWith(
+      { type: GroupType.SHARED, name: 'Family' },
+      'user-1',
+      transaction,
+    );
+    expect(createOwner).toHaveBeenCalledWith('group-1', 'user-1', transaction);
+    expect(log).toHaveBeenCalledWith(
+      'Group created',
+      { groupId: 'group-1', userId: 'user-1' },
+      GroupService.name,
+    );
+  });
+
+  it('rejects the transaction when owner membership creation fails', async () => {
+    const membershipError = new Error('Membership creation failed');
+    createGroup.mockResolvedValue(group);
+    createOwner.mockRejectedValue(membershipError);
+
+    await expect(service.create('user-1', { type: GroupType.SHARED, name: 'Family' })).rejects.toBe(
+      membershipError,
+    );
+
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(createGroup).toHaveBeenCalledWith(
+      { type: GroupType.SHARED, name: 'Family' },
+      'user-1',
+      transaction,
+    );
+    expect(createOwner).toHaveBeenCalledWith('group-1', 'user-1', transaction);
+    expect(log).not.toHaveBeenCalled();
   });
 
   it("loads only the authenticated user's groups through MembershipService", async () => {
