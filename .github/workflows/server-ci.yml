@@ -25,9 +25,9 @@ concurrency:
 
 env:
   NODE_ENV: test
-  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ubiquity_ci
-  DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ubiquity_ci
-  AUTH_ACCESS_TOKEN_SECRET: ci-access-token-secret-at-least-32-characters
+  E2E_AUTH_ACCESS_TOKEN_SECRET: ${{ secrets.E2E_AUTH_ACCESS_TOKEN_SECRET }}
+  E2E_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+  E2E_DIRECT_URL: ${{ secrets.E2E_DIRECT_URL }}
 
 defaults:
   run:
@@ -165,8 +165,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Deploy migrations to the E2E database
+        run: pnpm test:e2e:prepare
+
       - name: Run end-to-end tests
-        run: pnpm test:e2e
+        run: pnpm test:e2e:run
 
   prisma-schema:
     name: 06 Prisma schema

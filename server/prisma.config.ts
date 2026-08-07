@@ -1,8 +1,12 @@
 import { config as loadEnvironment } from 'dotenv';
 import { defineConfig, env } from 'prisma/config';
 
-loadEnvironment({ path: '.env.local', quiet: true });
-loadEnvironment({ path: '.env', quiet: true });
+const isTestEnvironment = process.env.NODE_ENV === 'test';
+const environmentFiles = isTestEnvironment ? ['.env.test.local'] : ['.env.local', '.env'];
+
+for (const path of environmentFiles) {
+  loadEnvironment({ path, quiet: true });
+}
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
@@ -10,6 +14,6 @@ export default defineConfig({
     path: 'prisma/migrations',
   },
   datasource: {
-    url: env('DIRECT_URL'),
+    url: env(isTestEnvironment ? 'E2E_DIRECT_URL' : 'DIRECT_URL'),
   },
 });

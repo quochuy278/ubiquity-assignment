@@ -11,13 +11,16 @@ import { PrismaModule } from '../shared/database/prisma/prisma.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
+const ENV_FILE_PATHS =
+  process.env.NODE_ENV === 'test' ? ['.env.test.local'] : ['.env.local', '.env'];
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
       expandVariables: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: ENV_FILE_PATHS,
       load: [configuration],
     }),
     LoggerModule,
