@@ -6,9 +6,189 @@ paths:
       parameters: []
       responses:
         "200":
-          description: ""
+          description: The application welcome message was retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Get the application welcome message
       tags:
         - app
+  /api/v1/auth/register:
+    post:
+      operationId: AuthController_register_v1
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequestDto"
+      responses:
+        "201":
+          description: The user was registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "409":
+          description: The email address is already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Register with email and password
+      tags: &a1
+        - auth
+  /api/v1/auth/login:
+    post:
+      operationId: AuthController_login_v1
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequestDto"
+      responses:
+        "200":
+          description: The user was authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The email address or password is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Log in with email and password
+      tags: *a1
+  /api/v1/auth/refresh:
+    post:
+      operationId: AuthController_refresh_v1
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequestDto"
+      responses:
+        "200":
+          description: The refresh token was rotated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The refresh token is invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      summary: Rotate a refresh token and issue a new token pair
+      tags: *a1
+  /api/v1/auth/me:
+    get:
+      operationId: AuthController_me_v1
+      parameters: []
+      responses:
+        "200":
+          description: The authenticated user was retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - bearer: []
+      summary: Get the authenticated user
+      tags: *a1
 info:
   title: Ubiquity API
   description: Ubiquity Assignment API documentation
@@ -16,6 +196,7 @@ info:
   contact: {}
 tags:
   - name: app
+  - name: auth
 servers: []
 components:
   securitySchemes:
@@ -23,4 +204,146 @@ components:
       scheme: bearer
       bearerFormat: JWT
       type: http
-  schemas: {}
+  schemas:
+    AppResponseDto:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Hello World!
+      required:
+        - message
+    ErrorCode:
+      type: string
+      enum:
+        - TASK_NOT_FOUND
+        - GROUP_NOT_FOUND
+        - EMAIL_ALREADY_REGISTERED
+        - INVALID_CREDENTIALS
+        - UNAUTHORIZED
+        - INVALID_REFRESH_TOKEN
+        - VALIDATION_ERROR
+        - INTERNAL_ERROR
+    ErrorResponseDto:
+      type: object
+      properties:
+        code:
+          example: INTERNAL_ERROR
+          allOf:
+            - $ref: "#/components/schemas/ErrorCode"
+      required:
+        - code
+    RegisterRequestDto:
+      type: object
+      properties:
+        email:
+          type: string
+          example: alex@example.com
+        password:
+          type: string
+          example: correct-horse-battery-staple
+          minLength: 3
+        displayName:
+          type: string
+          example: Alex
+          minLength: 1
+          maxLength: 100
+      required:
+        - email
+        - password
+        - displayName
+    UserResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - displayName
+        - createdAt
+        - updatedAt
+    AuthResponseDto:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: number
+          description: Access token lifetime in seconds
+          example: 900
+        user:
+          $ref: "#/components/schemas/UserResponseDto"
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresIn
+        - user
+    ValidationErrorDetailDto:
+      type: object
+      properties:
+        field:
+          type: string
+          example: password
+        messages:
+          example:
+            - password must be longer than or equal to 8 characters
+          type: array
+          items:
+            type: string
+      required:
+        - field
+        - messages
+    ValidationErrorResponseDto:
+      type: object
+      properties:
+        code:
+          example: INTERNAL_ERROR
+          allOf:
+            - $ref: "#/components/schemas/ErrorCode"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationErrorDetailDto"
+      required:
+        - code
+        - errors
+    LoginRequestDto:
+      type: object
+      properties:
+        email:
+          type: string
+          example: alex@example.com
+        password:
+          type: string
+          example: correct-horse-battery-staple
+      required:
+        - email
+        - password
+    RefreshRequestDto:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          description: Opaque refresh token returned by register, login, or refresh
+      required:
+        - refreshToken
