@@ -28,6 +28,10 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
+  // Development/demo policy: allow browser clients from any origin. Replace this with an
+  // explicit allowlist before introducing cookie-based authentication or browser credentials.
+  app.enableCors({ origin: '*' });
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
