@@ -16,7 +16,7 @@ describe('Application root controller', () => {
 
   describe('when the root endpoint is requested', () => {
     it('returns the application welcome message', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+      expect(appController.getHello()).toEqual({ message: 'Hello World!' });
     });
   });
 });

@@ -17,7 +17,7 @@ describe('Application root endpoint over HTTP', () => {
   });
 
   it('responds with HTTP 200 and the welcome message for GET /', () => {
-    return request(app.getHttpServer()).get('/').expect(200).expect('Hello World!');
+    return request(app.getHttpServer()).get('/').expect(200).expect({ message: 'Hello World!' });
   });
 
   afterEach(async () => {

@@ -11,9 +11,11 @@ import { ApplicationLoggerService } from '../logger/logger.service';
 import { ErrorCode } from './error-code';
 import { ERROR_STATUS_MAP } from './error-status.map';
 import { GlobalException } from './global.exception';
+import type { ValidationErrorDetail } from './validation-error.formatter';
 
 interface ErrorResponse {
   code: ErrorCode;
+  errors?: ValidationErrorDetail[];
 }
 
 @Catch()
@@ -67,7 +69,32 @@ export class GlobalExceptionFilter implements ExceptionFilter<unknown> {
   }
 
   private toErrorResponse(exception: GlobalException): ErrorResponse {
+    if (exception.code === ErrorCode.VALIDATION_ERROR) {
+      const errors = exception.context?.errors;
+
+      return {
+        code: exception.code,
+        errors: this.isValidationErrorDetails(errors) ? errors : [],
+      };
+    }
+
     return { code: exception.code };
+  }
+
+  private isValidationErrorDetails(value: unknown): value is ValidationErrorDetail[] {
+    return (
+      Array.isArray(value) &&
+      value.every(
+        (detail) =>
+          typeof detail === 'object' &&
+          detail !== null &&
+          'field' in detail &&
+          typeof detail.field === 'string' &&
+          'messages' in detail &&
+          Array.isArray(detail.messages) &&
+          detail.messages.every((message: unknown) => typeof message === 'string'),
+      )
+    );
   }
 
   private logUnexpectedException(
