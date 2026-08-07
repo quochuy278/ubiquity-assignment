@@ -8,7 +8,7 @@ import {
   LOGGER_LEVEL_LABELS,
   type LoggerLevel,
 } from '../logger.constants';
-import { createLogTimestamp, formatLogMessage } from './formatter.utilities';
+import { createLogTimestamp, formatLogMessage, getSystemTimeZone } from './formatter.utilities';
 
 function toDisplayValue(value: unknown): string {
   if (typeof value === 'string') {
@@ -31,9 +31,9 @@ function hasMetadata(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && Object.keys(value).length > 0;
 }
 
-export function createDevelopmentFormatter(): Logform.Format {
+export function createDevelopmentFormatter(timeZone = getSystemTimeZone()): Logform.Format {
   return format.combine(
-    format.timestamp({ format: createLogTimestamp }),
+    format.timestamp({ format: () => createLogTimestamp(new Date(), timeZone) }),
     format.printf((info) => {
       const rawLevel = info.level;
       const level = isLoggerLevel(rawLevel) ? rawLevel : 'info';
@@ -43,7 +43,7 @@ export function createDevelopmentFormatter(): Logform.Format {
       const metadata = hasMetadata(info.metadata) ? ` ${toDisplayValue(info.metadata)}` : '';
       const stack = typeof info.stack === 'string' ? `\n${info.stack}` : '';
 
-      const timestampColumn = LOGGER_DEVELOPMENT_COLORS.timestamp(timestamp);
+      const timestampColumn = LOGGER_DEVELOPMENT_COLORS.timestamp(`${timestamp} [${timeZone}]`);
       const levelColumn = LOGGER_LEVEL_COLORS[level](
         LOGGER_LEVEL_LABELS[level].padEnd(LOGGER_LEVEL_COLUMN_WIDTH),
       );

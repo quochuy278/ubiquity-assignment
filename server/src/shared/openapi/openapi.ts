@@ -5,6 +5,7 @@ import { DocumentBuilder, type OpenAPIObject, SwaggerModule } from '@nestjs/swag
 import { stringify } from 'yaml';
 
 const OPENAPI_OUTPUT_PATH = resolve(process.cwd(), 'generated', 'openapi.yml');
+export const OPENAPI_ROUTE = 'docs';
 
 const swaggerConfig = new DocumentBuilder()
   .setTitle('Ubiquity API')
@@ -45,7 +46,7 @@ export function generateOpenApiDocument(app: INestApplication): OpenAPIObject {
 export function setupOpenApi(app: INestApplication): void {
   const document = generateOpenApiDocument(app);
 
-  SwaggerModule.setup('docs', app, document, {
+  SwaggerModule.setup(OPENAPI_ROUTE, app, document, {
     useGlobalPrefix: true,
     customSiteTitle: 'Ubiquity API Docs',
   });

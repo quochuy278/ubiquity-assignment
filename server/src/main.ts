@@ -6,9 +6,15 @@ import { AppModule } from './app/app.module';
 import { ErrorCode } from './common/exception/error-code';
 import { GlobalException } from './common/exception/global.exception';
 import { formatValidationErrors } from './common/exception/validation-error.formatter';
+import {
+  createStartupDisplayUrl,
+  logApplicationStartup,
+} from './common/logger/log-application-startup';
 import { ApplicationLoggerService } from './common/logger/logger.service';
 import type { ApplicationConfig } from './shared/config/configuration.interface';
-import { setupOpenApi } from './shared/openapi/openapi';
+import { OPENAPI_ROUTE, setupOpenApi } from './shared/openapi/openapi';
+
+const GLOBAL_API_PREFIX = 'api';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -39,11 +45,18 @@ async function bootstrap() {
     defaultVersion: VERSION_NEUTRAL,
   });
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix(GLOBAL_API_PREFIX);
 
   setupOpenApi(app);
 
   await app.listen(appConfig.port);
+
+  const applicationUrl = createStartupDisplayUrl(await app.getUrl());
+  logApplicationStartup(logger, {
+    environment: appConfig.environment,
+    url: applicationUrl,
+    swaggerUrl: `${applicationUrl}/${GLOBAL_API_PREFIX}/${OPENAPI_ROUTE}`,
+  });
 }
 
 void bootstrap();

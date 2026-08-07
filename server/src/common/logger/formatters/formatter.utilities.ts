@@ -1,24 +1,28 @@
 const MESSAGE_SEPARATOR = '*****';
 
-function pad(value: number, length = 2): string {
-  return value.toString().padStart(length, '0');
-}
-
 export function formatLogMessage(message: unknown): string {
   return `${MESSAGE_SEPARATOR} ${String(message)} ${MESSAGE_SEPARATOR}`;
 }
 
-export function createLogTimestamp(): string {
-  const date = new Date();
-  const offsetMinutes = -date.getTimezoneOffset();
-  const offsetSign = offsetMinutes >= 0 ? '+' : '-';
-  const absoluteOffsetMinutes = Math.abs(offsetMinutes);
-  const offsetHours = Math.floor(absoluteOffsetMinutes / 60);
-  const offsetRemainingMinutes = absoluteOffsetMinutes % 60;
+export function getSystemTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
 
-  return [
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`,
-    `${offsetSign}${pad(offsetHours)}:${pad(offsetRemainingMinutes)}`,
-  ].join('');
+export function createLogTimestamp(date = new Date(), timeZone = getSystemTimeZone()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    fractionalSecondDigits: 3,
+    timeZoneName: 'longOffset',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const offset = values.timeZoneName === 'GMT' ? '+00:00' : values.timeZoneName?.slice(3);
+
+  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}.${values.fractionalSecond}${offset}`;
 }
