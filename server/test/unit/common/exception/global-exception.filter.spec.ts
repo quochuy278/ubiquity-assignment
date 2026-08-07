@@ -27,12 +27,28 @@ describe('GlobalExceptionFilter HTTP boundary behavior', () => {
       errorContext: { groupId: 'group-1' },
     },
     {
-      scenario: 'request validation fails',
-      code: ErrorCode.VALIDATION_ERROR,
-      status: HttpStatus.BAD_REQUEST,
-      errorContext: {
-        errors: [{ field: 'title', messages: ['title should not be empty'] }],
-      },
+      scenario: 'an email address is already registered',
+      code: ErrorCode.EMAIL_ALREADY_REGISTERED,
+      status: HttpStatus.CONFLICT,
+      errorContext: { email: 'alex@example.com' },
+    },
+    {
+      scenario: 'login credentials are invalid',
+      code: ErrorCode.INVALID_CREDENTIALS,
+      status: HttpStatus.UNAUTHORIZED,
+      errorContext: {},
+    },
+    {
+      scenario: 'an access token is missing or invalid',
+      code: ErrorCode.UNAUTHORIZED,
+      status: HttpStatus.UNAUTHORIZED,
+      errorContext: {},
+    },
+    {
+      scenario: 'a refresh token is invalid or expired',
+      code: ErrorCode.INVALID_REFRESH_TOKEN,
+      status: HttpStatus.UNAUTHORIZED,
+      errorContext: {},
     },
   ])(
     'returns $code with HTTP $status without logging or exposing context when $scenario',
@@ -44,6 +60,49 @@ describe('GlobalExceptionFilter HTTP boundary behavior', () => {
       expect(harness.loggerError).not.toHaveBeenCalled();
     },
   );
+
+  it('returns safe field-level messages when request validation fails', () => {
+    const errors = [
+      {
+        field: 'password',
+        messages: ['password must be longer than or equal to 8 characters'],
+      },
+      {
+        field: 'displayName',
+        messages: ['displayName must be a string'],
+      },
+    ];
+
+    filter.catch(
+      new GlobalException(ErrorCode.VALIDATION_ERROR, {
+        errors,
+        internalContext: 'must-not-be-exposed',
+      }),
+      harness.host,
+    );
+
+    expect(harness.reply).toHaveBeenCalledWith(
+      harness.response,
+      { code: ErrorCode.VALIDATION_ERROR, errors },
+      HttpStatus.BAD_REQUEST,
+    );
+    expect(harness.loggerError).not.toHaveBeenCalled();
+  });
+
+  it('returns an empty error list when validation context has an unexpected shape', () => {
+    filter.catch(
+      new GlobalException(ErrorCode.VALIDATION_ERROR, {
+        errors: [{ field: 'password', messages: 'unsafe-shape' }],
+      }),
+      harness.host,
+    );
+
+    expect(harness.reply).toHaveBeenCalledWith(
+      harness.response,
+      { code: ErrorCode.VALIDATION_ERROR, errors: [] },
+      HttpStatus.BAD_REQUEST,
+    );
+  });
 
   it('preserves a framework 4xx response without logging it as an application failure', () => {
     const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);

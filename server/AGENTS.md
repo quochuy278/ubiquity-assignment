@@ -185,6 +185,42 @@ Internal diagnostic context, exception details, and stack traces must not be exp
 
 Unexpected errors should be logged with sufficient context and mapped to a safe generic API error.
 
+## OpenAPI and Swagger
+
+Document API operations through the shared `ApiEndpoint` decorator so operation metadata, request inputs, success responses, and common error responses remain consistent.
+
+Every documented success or additional response must declare its DTO class through `type`. Request bodies must also declare their DTO class through `type`.
+
+When documenting an array, declare the element DTO and set `isArray: true`:
+
+```ts
+{
+  type: TaskResponseDto,
+  isArray: true,
+}
+```
+
+Do not wrap the DTO in an array:
+
+```ts
+{
+  type: [TaskResponseDto],
+}
+```
+
+Whenever a Swagger schema or parameter uses an enum, declare both `enum` and a stable `enumName`. Reusing a named enum schema prevents duplicate generated enum definitions.
+
+Prefer:
+
+```ts
+{
+  enum: TaskStatus,
+  enumName: 'TaskStatus',
+}
+```
+
+Do not declare an enum without `enumName`.
+
 ## Large Data Processing
 
 When processing large or potentially unbounded datasets, prefer streaming or incremental processing over loading the entire dataset into memory.
