@@ -1,7 +1,7 @@
 import type { Logger } from 'winston';
 import { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
 
-describe('ApplicationLoggerService', () => {
+describe('Application logger structured output', () => {
   const winstonLog = jest.fn();
   const winstonLogger = { log: winstonLog } as unknown as Logger;
   const logger = new ApplicationLoggerService(winstonLogger);

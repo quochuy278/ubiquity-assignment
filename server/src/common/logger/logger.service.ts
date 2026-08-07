@@ -84,11 +84,12 @@ export class ApplicationLoggerService implements LoggerService {
     const optionalError = optionalParams.find((value): value is Error => value instanceof Error);
     const trace =
       strings.length > 1 ? strings[0] : strings.find((value) => this.looksLikeStack(value));
+    const stack = messageStack ?? optionalError?.stack ?? trace;
 
     return {
       context,
       metadata,
-      stack: messageStack ?? optionalError?.stack ?? trace,
+      ...(stack ? { stack } : {}),
     };
   }
 

@@ -10,14 +10,18 @@ function transform(
 ): string {
   const transformed = formatter.transform(info, formatter.options);
 
-  if (!transformed || typeof transformed[MESSAGE] !== 'string') {
+  if (typeof transformed !== 'object' || transformed === null) {
+    throw new Error('Formatter did not produce a log message');
+  }
+
+  if (typeof transformed[MESSAGE] !== 'string') {
     throw new Error('Formatter did not produce a log message');
   }
 
   return transformed[MESSAGE];
 }
 
-describe('logger formatters', () => {
+describe('Logger output formatting across runtime environments', () => {
   it('renders colored, readable development logs with context and metadata', () => {
     const output = transform(createDevelopmentFormatter(), {
       level: 'info',

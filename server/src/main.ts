@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app/app.module';
+import { ErrorCode } from './common/exception/error-code';
+import { GlobalException } from './common/exception/global.exception';
+import { formatValidationErrors } from './common/exception/validation-error.formatter';
 import { ApplicationLoggerService } from './common/logger/logger.service';
 import type { ApplicationConfig } from './shared/config/configuration.interface';
 import { setupOpenApi } from './shared/openapi/openapi';
@@ -24,6 +27,10 @@ async function bootstrap() {
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: (errors) =>
+        new GlobalException(ErrorCode.VALIDATION_ERROR, {
+          errors: formatValidationErrors(errors),
+        }),
     }),
   );
 
