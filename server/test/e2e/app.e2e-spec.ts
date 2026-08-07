@@ -17,7 +17,19 @@ describe('Application root endpoint over HTTP', () => {
   });
 
   it('responds with HTTP 200 and the welcome message for GET /', () => {
-    return request(app.getHttpServer()).get('/').expect(200).expect({ message: 'Hello World!' });
+    return request(app.getHttpServer())
+      .get('/')
+      .expect(200)
+      .expect('x-request-id', /^[0-9a-f-]{36}$/u)
+      .expect({ message: 'Hello World!' });
+  });
+
+  it('reuses an incoming request ID and returns it to the client', () => {
+    return request(app.getHttpServer())
+      .get('/')
+      .set('x-request-id', 'frontend-request-1')
+      .expect(200)
+      .expect('x-request-id', 'frontend-request-1');
   });
 
   afterEach(async () => {

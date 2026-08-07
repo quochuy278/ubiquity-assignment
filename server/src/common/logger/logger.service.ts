@@ -2,6 +2,7 @@ import { inspect } from 'node:util';
 import { Inject, Injectable, type LoggerService } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Logger } from 'winston';
+import { RequestContextService } from '../request-context/request-context.service';
 import { LOGGER_DEFAULT_CONTEXT, type LoggerLevel } from './logger.constants';
 
 export type LoggerMetadata = Record<string, unknown>;
@@ -14,7 +15,10 @@ interface ParsedLogArguments {
 
 @Injectable()
 export class ApplicationLoggerService implements LoggerService {
-  constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {}
+  constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    private readonly requestContext: RequestContextService,
+  ) {}
 
   log(message: unknown, ...optionalParams: unknown[]): void {
     this.write('info', message, optionalParams);
@@ -51,12 +55,16 @@ export class ApplicationLoggerService implements LoggerService {
     isError = false,
   ): void {
     const parsedArguments = this.parseArguments(message, optionalParams, isError);
+    const requestId = this.requestContext.getRequestId();
 
     this.logger.log({
       level,
       message: this.formatMessage(message),
       context: parsedArguments.context,
-      metadata: parsedArguments.metadata,
+      metadata: {
+        ...parsedArguments.metadata,
+        ...(requestId ? { requestId } : {}),
+      },
       ...(parsedArguments.stack ? { stack: parsedArguments.stack } : {}),
     });
   }

@@ -6,6 +6,16 @@ export function createProductionFormatter(timeZone = getSystemTimeZone()): Logfo
     info.message = formatLogMessage(info.message);
     info.timezone = timeZone;
 
+    if (typeof info.metadata === 'object' && info.metadata !== null) {
+      const metadata = info.metadata as Record<string, unknown>;
+
+      if (typeof metadata.requestId === 'string') {
+        info.requestId = metadata.requestId;
+        const { requestId: _requestId, ...remainingMetadata } = metadata;
+        info.metadata = remainingMetadata;
+      }
+    }
+
     return info;
   });
 

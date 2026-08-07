@@ -1,10 +1,12 @@
 import type { Logger } from 'winston';
 import { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
+import { RequestContextService } from '../../../../src/common/request-context/request-context.service';
 
 describe('Application logger structured output', () => {
   const winstonLog = jest.fn();
   const winstonLogger = { log: winstonLog } as unknown as Logger;
-  const logger = new ApplicationLoggerService(winstonLogger);
+  const requestContext = new RequestContextService();
+  const logger = new ApplicationLoggerService(winstonLogger, requestContext);
 
   beforeEach(() => {
     winstonLog.mockClear();
@@ -38,6 +40,26 @@ describe('Application logger structured output', () => {
       context: 'PaymentService',
       metadata: {},
       stack,
+    });
+  });
+
+  it('automatically adds the active request ID to every log entry', async () => {
+    await requestContext.run({ requestId: 'request-from-context' }, async () => {
+      await Promise.resolve();
+      logger.log('Task created', 'TaskService', {
+        requestId: 'incorrect-manual-request-id',
+        taskId: 'task-1',
+      });
+    });
+
+    expect(winstonLog).toHaveBeenCalledWith({
+      level: 'info',
+      message: 'Task created',
+      context: 'TaskService',
+      metadata: {
+        requestId: 'request-from-context',
+        taskId: 'task-1',
+      },
     });
   });
 });

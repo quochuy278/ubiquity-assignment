@@ -83,7 +83,7 @@ describe('Logger output formatting across runtime environments', () => {
       level: 'error',
       message: 'Payment failed',
       context: 'PaymentService',
-      metadata: { paymentId: 'payment-1' },
+      metadata: { requestId: 'request-1', paymentId: 'payment-1' },
       stack: 'Error: Payment failed',
     });
     const parsed = JSON.parse(output) as Record<string, unknown>;
@@ -93,6 +93,7 @@ describe('Logger output formatting across runtime environments', () => {
       level: 'error',
       message: '***** Payment failed *****',
       context: 'PaymentService',
+      requestId: 'request-1',
       metadata: { paymentId: 'payment-1' },
       stack: 'Error: Payment failed',
       timezone: TEST_TIME_ZONE,
