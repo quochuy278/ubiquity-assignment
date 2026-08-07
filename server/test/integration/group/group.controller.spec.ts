@@ -140,6 +140,35 @@ describe('Versioned group HTTP endpoints', () => {
     expect(findById).toHaveBeenCalledWith('user-2', 'group-1');
   });
 
+  it('returns the same API response for inaccessible and nonexistent groups', async () => {
+    const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
+    findById
+      .mockRejectedValueOnce(
+        new GlobalException(ErrorCode.GROUP_NOT_FOUND, {
+          groupId: 'inaccessible-group',
+          userId: 'user-1',
+        }),
+      )
+      .mockRejectedValueOnce(
+        new GlobalException(ErrorCode.GROUP_NOT_FOUND, {
+          groupId: 'nonexistent-group',
+          userId: 'user-1',
+        }),
+      );
+
+    const inaccessibleResponse = await request(app.getHttpServer())
+      .get('/api/v1/groups/inaccessible-group')
+      .set('Authorization', `Bearer ${accessToken}`);
+    const nonexistentResponse = await request(app.getHttpServer())
+      .get('/api/v1/groups/nonexistent-group')
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(inaccessibleResponse.status).toBe(404);
+    expect(nonexistentResponse.status).toBe(inaccessibleResponse.status);
+    expect(nonexistentResponse.body).toEqual(inaccessibleResponse.body);
+    expect(inaccessibleResponse.body).toEqual({ code: ErrorCode.GROUP_NOT_FOUND });
+  });
+
   it('creates a group for the authenticated user through POST /api/v1/groups', async () => {
     const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
 
@@ -187,19 +216,22 @@ describe('Versioned group HTTP endpoints', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('rejects ownership supplied in the create-group payload', async () => {
-    const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
+  it.each(['createdById', 'ownerId', 'userId'])(
+    'rejects the ownership field %s in the create-group payload',
+    async (ownershipField) => {
+      const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
 
-    await request(app.getHttpServer())
-      .post('/api/v1/groups')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({
-        type: GroupType.SHARED,
-        name: 'Family',
-        createdById: 'user-2',
-      })
-      .expect(400);
+      await request(app.getHttpServer())
+        .post('/api/v1/groups')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          type: GroupType.SHARED,
+          name: 'Family',
+          [ownershipField]: 'user-2',
+        })
+        .expect(400);
 
-    expect(create).not.toHaveBeenCalled();
-  });
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
 });
