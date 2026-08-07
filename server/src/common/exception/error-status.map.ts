@@ -3,6 +3,7 @@ import { ErrorCode } from './error-code';
 
 export const ERROR_STATUS_MAP = {
   [ErrorCode.TASK_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.TODO_LIST_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.GROUP_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.EMAIL_ALREADY_REGISTERED]: HttpStatus.CONFLICT,
   [ErrorCode.INVALID_CREDENTIALS]: HttpStatus.UNAUTHORIZED,
