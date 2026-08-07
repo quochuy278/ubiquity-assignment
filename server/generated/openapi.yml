@@ -189,6 +189,509 @@ paths:
         - bearer: []
       summary: Get the authenticated user
       tags: *a1
+  /api/v1/groups:
+    get:
+      operationId: GroupController_findForUser_v1
+      parameters: []
+      responses:
+        "200":
+          description: The groups were retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: &a2
+        - bearer: []
+      summary: Get the authenticated user's groups
+      tags: &a3
+        - groups
+    post:
+      operationId: GroupController_create_v1
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupDto"
+      responses:
+        "201":
+          description: The group was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a2
+      summary: Create a group
+      tags: *a3
+  /api/v1/groups/{groupId}:
+    get:
+      operationId: GroupController_findById_v1
+      parameters:
+        - name: groupId
+          required: true
+          in: path
+          description: Group ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The group was retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The group was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a2
+      summary: Get a group by ID
+      tags: *a3
+  /api/v1/groups/{groupId}/lists:
+    post:
+      operationId: TodoListController_create_v1
+      parameters:
+        - name: groupId
+          required: true
+          in: path
+          description: Group ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTodoListDto"
+      responses:
+        "201":
+          description: The todo list was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoListResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The group was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: &a4
+        - bearer: []
+      summary: Create a todo list within a group
+      tags: &a5
+        - todo-lists
+    get:
+      operationId: TodoListController_findForGroup_v1
+      parameters:
+        - name: groupId
+          required: true
+          in: path
+          description: Group ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The todo lists were retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TodoListResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The group was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a4
+      summary: Get the todo lists belonging to a group
+      tags: *a5
+  /api/v1/lists/{todoListId}:
+    get:
+      operationId: TodoListController_findById_v1
+      parameters:
+        - name: todoListId
+          required: true
+          in: path
+          description: Todo list ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The todo list was retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoListResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo list was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a4
+      summary: Get a todo list by ID
+      tags: *a5
+  /api/v1/lists/{todoListId}/todos:
+    post:
+      operationId: TodoController_create_v1
+      parameters:
+        - name: todoListId
+          required: true
+          in: path
+          description: Todo list ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTodoDto"
+      responses:
+        "201":
+          description: The todo was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo list was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: &a6
+        - bearer: []
+      summary: Create a todo within a todo list
+      tags: &a7
+        - todos
+    get:
+      operationId: TodoController_findForTodoList_v1
+      parameters:
+        - name: todoListId
+          required: true
+          in: path
+          description: Todo list ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The todos were retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TodoResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo list was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a6
+      summary: Get the todos belonging to a todo list
+      tags: *a7
+  /api/v1/todos/{todoId}:
+    get:
+      operationId: TodoController_findById_v1
+      parameters:
+        - name: todoId
+          required: true
+          in: path
+          description: Todo ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The todo was retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a6
+      summary: Get a todo by ID
+      tags: *a7
+  /api/v1/todos/{todoId}/completion:
+    patch:
+      operationId: TodoController_updateCompletion_v1
+      parameters:
+        - name: todoId
+          required: true
+          in: path
+          description: Todo ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTodoCompletionDto"
+      responses:
+        "200":
+          description: The todo completion state was updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a6
+      summary: Update a todo's completion state
+      tags: *a7
 info:
   title: Ubiquity API
   description: Ubiquity Assignment API documentation
@@ -197,6 +700,9 @@ info:
 tags:
   - name: app
   - name: auth
+  - name: groups
+  - name: todo-lists
+  - name: todos
 servers: []
 components:
   securitySchemes:
@@ -217,6 +723,7 @@ components:
       type: string
       enum:
         - TASK_NOT_FOUND
+        - TODO_LIST_NOT_FOUND
         - GROUP_NOT_FOUND
         - EMAIL_ALREADY_REGISTERED
         - INVALID_CREDENTIALS
@@ -262,7 +769,7 @@ components:
         displayName:
           type: string
         avatarUrl:
-          type: object
+          type: string
           nullable: true
         createdAt:
           type: string
@@ -274,6 +781,7 @@ components:
         - id
         - email
         - displayName
+        - avatarUrl
         - createdAt
         - updatedAt
     AuthResponseDto:
@@ -347,3 +855,176 @@ components:
           description: Opaque refresh token returned by register, login, or refresh
       required:
         - refreshToken
+    GroupType:
+      type: string
+      enum:
+        - PERSONAL
+        - SHARED
+    GroupResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          allOf:
+            - $ref: "#/components/schemas/GroupType"
+        name:
+          type: string
+        createdById:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - name
+        - createdById
+        - createdAt
+        - updatedAt
+    CreateGroupDto:
+      type: object
+      properties:
+        type:
+          allOf:
+            - $ref: "#/components/schemas/GroupType"
+        name:
+          type: string
+          example: Family
+      required:
+        - type
+        - name
+    CreateTodoListDto:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Shopping
+        icon:
+          type: string
+          example: shopping-cart
+        color:
+          type: string
+          example: "#2563EB"
+      required:
+        - name
+    TodoListResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        groupId:
+          type: string
+        name:
+          type: string
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        rank:
+          type: string
+          example: "1000"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - groupId
+        - name
+        - icon
+        - color
+        - rank
+        - createdAt
+        - updatedAt
+    CreateTodoDto:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Buy groceries
+        description:
+          type: string
+          nullable: true
+          example: Milk, eggs, and bread
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2026-08-10T18:00:00.000Z
+      required:
+        - title
+    TodoStatus:
+      type: number
+      enum:
+        - 10
+        - 20
+    TodoResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        todoListId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          allOf:
+            - $ref: "#/components/schemas/TodoStatus"
+        rank:
+          type: string
+          example: "1000"
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        assignedToId:
+          type: string
+          nullable: true
+        createdById:
+          type: string
+        updatedById:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - todoListId
+        - title
+        - description
+        - status
+        - rank
+        - dueDate
+        - completedAt
+        - assignedToId
+        - createdById
+        - updatedById
+        - createdAt
+        - updatedAt
+    UpdateTodoCompletionDto:
+      type: object
+      properties:
+        completed:
+          type: boolean
+          example: true
+      required:
+        - completed
