@@ -1,4 +1,13 @@
+import type { Dayjs } from 'dayjs';
+import { keyBy } from 'lodash';
+import { now } from '../../../shared/time/time.utilities';
+
 const MESSAGE_SEPARATOR = '*****';
+
+interface LogTimestampOptions {
+  date?: Dayjs;
+  timeZone?: string;
+}
 
 export function formatLogMessage(message: unknown): string {
   return `${MESSAGE_SEPARATOR} ${String(message)} ${MESSAGE_SEPARATOR}`;
@@ -8,7 +17,10 @@ export function getSystemTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-export function createLogTimestamp(date = new Date(), timeZone = getSystemTimeZone()): string {
+export function createLogTimestamp({
+  date = now(),
+  timeZone = getSystemTimeZone(),
+}: LogTimestampOptions = {}): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
@@ -20,9 +32,10 @@ export function createLogTimestamp(date = new Date(), timeZone = getSystemTimeZo
     fractionalSecondDigits: 3,
     timeZoneName: 'longOffset',
     hourCycle: 'h23',
-  }).formatToParts(date);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const offset = values.timeZoneName === 'GMT' ? '+00:00' : values.timeZoneName?.slice(3);
+  }).formatToParts(date.toDate());
+  const values = keyBy(parts, 'type');
+  const offsetName = values.timeZoneName.value;
+  const offset = offsetName === 'GMT' ? '+00:00' : offsetName.slice(3);
 
-  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}.${values.fractionalSecond}${offset}`;
+  return `${values.year.value}-${values.month.value}-${values.day.value}T${values.hour.value}:${values.minute.value}:${values.second.value}.${values.fractionalSecond.value}${offset}`;
 }

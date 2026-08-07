@@ -11,7 +11,7 @@ export function createProductionFormatter(timeZone = getSystemTimeZone()): Logfo
 
   return format.combine(
     format.errors({ stack: true }),
-    format.timestamp({ format: () => createLogTimestamp(new Date(), timeZone) }),
+    format.timestamp({ format: () => createLogTimestamp({ timeZone }) }),
     decorateMessage(),
     format.json(),
   );

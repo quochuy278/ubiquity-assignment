@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import type { Logform } from 'winston';
 import { createDevelopmentFormatter } from '../../../../src/common/logger/formatters/development.formatter';
 import {
@@ -29,7 +30,7 @@ function transform(
 describe('Logger output formatting across runtime environments', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date('2026-08-07T12:30:15.123Z'));
+    jest.setSystemTime(dayjs('2026-08-07T12:30:15.123Z').toDate());
   });
 
   afterEach(() => {
@@ -102,13 +103,19 @@ describe('Logger output formatting across runtime environments', () => {
 
 describe('Timezone-aware log timestamp formatting', () => {
   it('uses the daylight-saving offset for Europe/Amsterdam during summer', () => {
-    const timestamp = createLogTimestamp(new Date('2026-08-07T12:30:15.123Z'), TEST_TIME_ZONE);
+    const timestamp = createLogTimestamp({
+      date: dayjs('2026-08-07T12:30:15.123Z'),
+      timeZone: TEST_TIME_ZONE,
+    });
 
     expect(timestamp).toBe('2026-08-07T14:30:15.123+02:00');
   });
 
   it('uses the standard-time offset for Europe/Amsterdam during winter', () => {
-    const timestamp = createLogTimestamp(new Date('2026-01-07T12:30:15.123Z'), TEST_TIME_ZONE);
+    const timestamp = createLogTimestamp({
+      date: dayjs('2026-01-07T12:30:15.123Z'),
+      timeZone: TEST_TIME_ZONE,
+    });
 
     expect(timestamp).toBe('2026-01-07T13:30:15.123+01:00');
   });

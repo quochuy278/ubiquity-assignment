@@ -33,7 +33,7 @@ function hasMetadata(value: unknown): value is Record<string, unknown> {
 
 export function createDevelopmentFormatter(timeZone = getSystemTimeZone()): Logform.Format {
   return format.combine(
-    format.timestamp({ format: () => createLogTimestamp(new Date(), timeZone) }),
+    format.timestamp({ format: () => createLogTimestamp({ timeZone }) }),
     format.printf((info) => {
       const rawLevel = info.level;
       const level = isLoggerLevel(rawLevel) ? rawLevel : 'info';
