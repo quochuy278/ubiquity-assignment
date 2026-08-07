@@ -27,6 +27,8 @@ describe('Application root endpoint over HTTP', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 });

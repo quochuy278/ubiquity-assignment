@@ -5,7 +5,11 @@ import { GroupType } from '../../src/api/v1/group/group.constants';
 import { TodoStatus } from '../../src/api/v1/todo/todo.constants';
 import { ErrorCode } from '../../src/common/exception/error-code';
 import { createE2eApplication } from './support/e2e-application';
-import { createUniqueName, createUniqueUserInput } from './support/unique-test-data';
+import {
+  createUniqueName,
+  createUniqueUserInput,
+  type UniqueUserInput,
+} from './support/unique-test-data';
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) {
@@ -13,6 +17,33 @@ function requireString(value: unknown, field: string): string {
   }
 
   return value;
+}
+
+interface AuthenticatedCustomer {
+  authorization: { Authorization: string };
+  userId: string;
+}
+
+async function registerAndAuthenticate(
+  app: INestApplication<App>,
+  input: UniqueUserInput,
+): Promise<AuthenticatedCustomer> {
+  const registration = await request(app.getHttpServer())
+    .post('/api/v1/auth/register')
+    .send(input)
+    .expect(201);
+  const userId = requireString(registration.body.user?.id, 'registered user ID');
+
+  const authentication = await request(app.getHttpServer())
+    .post('/api/v1/auth/login')
+    .send({ email: input.email, password: input.password })
+    .expect(200);
+  const accessToken = requireString(authentication.body.accessToken, 'access token');
+
+  return {
+    authorization: { Authorization: `Bearer ${accessToken}` },
+    userId,
+  };
 }
 
 describe('Todo customer stories over real HTTP and PostgreSQL', () => {
@@ -23,24 +54,15 @@ describe('Todo customer stories over real HTTP and PostgreSQL', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
-  it('allows a registered customer to create and complete a todo', async () => {
+  it('Story 1 — Core Todo Journey', async () => {
     // Given: a uniquely registered customer who authenticates with their credentials.
     const userInput = createUniqueUserInput('todo-owner');
-    const registration = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send(userInput)
-      .expect(201);
-    const userId = requireString(registration.body.user?.id, 'registered user ID');
-
-    const authentication = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({ email: userInput.email, password: userInput.password })
-      .expect(200);
-    const accessToken = requireString(authentication.body.accessToken, 'access token');
-    const authorization = { Authorization: `Bearer ${accessToken}` };
+    const { authorization, userId } = await registerAndAuthenticate(app, userInput);
 
     // When: the customer creates a group and retrieves it through their membership.
     const group = await request(app.getHttpServer())
@@ -110,41 +132,28 @@ describe('Todo customer stories over real HTTP and PostgreSQL', () => {
       });
   });
 
-  it("does not expose one customer's resources to another customer", async () => {
+  it('Story 2 — Cross-user isolation', async () => {
     // Given: two independently registered customers and resources created by the first customer.
     const ownerInput = createUniqueUserInput('isolation-owner');
     const outsiderInput = createUniqueUserInput('isolation-outsider');
-    const ownerRegistration = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send(ownerInput)
-      .expect(201);
-    const outsiderRegistration = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send(outsiderInput)
-      .expect(201);
-    const ownerToken = requireString(ownerRegistration.body.accessToken, 'owner access token');
-    const outsiderToken = requireString(
-      outsiderRegistration.body.accessToken,
-      'outsider access token',
-    );
-    const ownerAuthorization = { Authorization: `Bearer ${ownerToken}` };
-    const outsiderAuthorization = { Authorization: `Bearer ${outsiderToken}` };
+    const owner = await registerAndAuthenticate(app, ownerInput);
+    const outsider = await registerAndAuthenticate(app, outsiderInput);
 
     const group = await request(app.getHttpServer())
       .post('/api/v1/groups')
-      .set(ownerAuthorization)
+      .set(owner.authorization)
       .send({ type: GroupType.SHARED, name: createUniqueName('Private E2E group') })
       .expect(201);
     const groupId = requireString(group.body.id, 'private group ID');
     const todoList = await request(app.getHttpServer())
       .post(`/api/v1/groups/${groupId}/lists`)
-      .set(ownerAuthorization)
+      .set(owner.authorization)
       .send({ name: createUniqueName('Private E2E list') })
       .expect(201);
     const todoListId = requireString(todoList.body.id, 'private todo list ID');
     const todo = await request(app.getHttpServer())
       .post(`/api/v1/lists/${todoListId}/todos`)
-      .set(ownerAuthorization)
+      .set(owner.authorization)
       .send({ title: createUniqueName('Private E2E todo') })
       .expect(201);
     const todoId = requireString(todo.body.id, 'private todo ID');
@@ -152,13 +161,19 @@ describe('Todo customer stories over real HTTP and PostgreSQL', () => {
     // When/Then: the second customer attempts to access those exact resource IDs.
     await request(app.getHttpServer())
       .get(`/api/v1/groups/${groupId}`)
-      .set(outsiderAuthorization)
+      .set(outsider.authorization)
       .expect(404)
       .expect({ code: ErrorCode.GROUP_NOT_FOUND });
 
     await request(app.getHttpServer())
+      .get(`/api/v1/lists/${todoListId}`)
+      .set(outsider.authorization)
+      .expect(404)
+      .expect({ code: ErrorCode.TODO_LIST_NOT_FOUND });
+
+    await request(app.getHttpServer())
       .get(`/api/v1/todos/${todoId}`)
-      .set(outsiderAuthorization)
+      .set(outsider.authorization)
       .expect(404)
       .expect({ code: ErrorCode.TASK_NOT_FOUND });
   });
