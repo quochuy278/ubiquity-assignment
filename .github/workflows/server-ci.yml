@@ -1,0 +1,77 @@
+name: Server CI
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "server/**"
+      - ".gitattributes"
+      - ".github/workflows/server-ci.yml"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "server/**"
+      - ".gitattributes"
+      - ".github/workflows/server-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate server
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ubiquity_ci
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ubiquity_ci
+      AUTH_ACCESS_TOKEN_SECRET: ci-access-token-secret-at-least-32-characters
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate formatting and linting with Biome
+        run: pnpm lint:ci
+
+      - name: Validate TypeScript type safety
+        run: pnpm typecheck
+
+      - name: Run unit tests
+        run: pnpm test:unit
+
+      - name: Run integration tests
+        run: pnpm test:integration
+
+      - name: Run end-to-end tests
+        run: pnpm test:e2e
+
+      - name: Build server
+        run: pnpm build
+
+      - name: Validate Prisma schema
+        run: pnpm prisma:validate

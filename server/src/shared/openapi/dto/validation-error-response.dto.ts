@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ErrorResponseDto } from './error-response.dto';
 
 export class ValidationErrorDetailDto {
-  @ApiProperty({ example: 'password' })
+  @ApiProperty({ type: String, example: 'password' })
   field: string;
 
   @ApiProperty({

@@ -11,12 +11,12 @@ enum ExampleStatus {
 }
 
 class ExampleRequestDto {
-  @ApiProperty()
+  @ApiProperty({ type: String })
   name: string;
 }
 
 class ExampleResponseDto {
-  @ApiProperty()
+  @ApiProperty({ type: String })
   id: string;
 }
 

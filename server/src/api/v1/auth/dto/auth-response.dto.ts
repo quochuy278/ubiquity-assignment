@@ -2,16 +2,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserResponseDto } from './user-response.dto';
 
 export class AuthResponseDto {
-  @ApiProperty()
+  @ApiProperty({ type: String })
   accessToken: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: String })
   refreshToken: string;
 
-  @ApiProperty({ example: 'Bearer' })
+  @ApiProperty({ type: String, example: 'Bearer' })
   tokenType: 'Bearer';
 
-  @ApiProperty({ description: 'Access token lifetime in seconds', example: 900 })
+  @ApiProperty({ type: Number, description: 'Access token lifetime in seconds', example: 900 })
   expiresIn: number;
 
   @ApiProperty({ type: UserResponseDto })

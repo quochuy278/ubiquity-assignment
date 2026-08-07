@@ -221,6 +221,46 @@ Prefer:
 
 Do not declare an enum without `enumName`.
 
+For enum properties, declare the OpenAPI primitive type explicitly together with the
+enum metadata so Nest can register the named reusable schema:
+
+```ts
+@ApiProperty({
+  type: 'string',
+  enum: TaskStatus,
+  enumName: 'TaskStatus',
+})
+status: TaskStatus;
+```
+
+Every DTO property must declare its Swagger type explicitly. Do not rely on
+TypeScript reflection because generated OpenAPI clients require an unambiguous schema.
+
+Prefer:
+
+```ts
+@ApiProperty({ type: String, example: 'alex@example.com' })
+email: string;
+```
+
+Use `ApiPropertyOptional` only when the property itself is optional:
+
+```ts
+@ApiPropertyOptional({ type: String })
+nickname?: string;
+```
+
+When a required property can contain `null`, keep `ApiProperty` and declare
+`nullable: true` explicitly:
+
+```ts
+@ApiProperty({ type: String, nullable: true })
+avatarUrl: string | null;
+```
+
+If a property is both optional and nullable, use `ApiPropertyOptional` together with
+`nullable: true`.
+
 ## Large Data Processing
 
 When processing large or potentially unbounded datasets, prefer streaming or incremental processing over loading the entire dataset into memory.

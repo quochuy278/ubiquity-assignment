@@ -1,21 +1,21 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class UserResponseDto {
-  @ApiProperty()
+  @ApiProperty({ type: String })
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: String })
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: String })
   displayName: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   avatarUrl: string | null;
 
-  @ApiProperty({ format: 'date-time' })
+  @ApiProperty({ type: String, format: 'date-time' })
   createdAt: string;
 
-  @ApiProperty({ format: 'date-time' })
+  @ApiProperty({ type: String, format: 'date-time' })
   updatedAt: string;
 }
