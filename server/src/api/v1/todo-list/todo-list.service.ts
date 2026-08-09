@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ErrorCode } from '../../../common/exception/error-code';
 import { GlobalException } from '../../../common/exception/global.exception';
 import { ApplicationLoggerService } from '../../../common/logger/logger.service';
+import { PrismaService } from '../../../shared/database/prisma/prisma.service';
+import { ActivityEntityType, ActivityType } from '../activity/activity.constants';
+import { ActivityService } from '../activity/activity.service';
 import { GroupService } from '../group/group.service';
 import type { CreateTodoListDto } from './dto/create-todo-list.dto';
 import { TodoListRepository } from './repositories/todo-list.repository';
@@ -10,15 +13,30 @@ import type { TodoListResult } from './todo-list.types';
 @Injectable()
 export class TodoListService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly todoLists: TodoListRepository,
     private readonly groups: GroupService,
+    private readonly activities: ActivityService,
     private readonly logger: ApplicationLoggerService,
   ) {}
 
   async create(userId: string, groupId: string, input: CreateTodoListDto): Promise<TodoListResult> {
     await this.groups.findById(userId, groupId);
 
-    const todoList = await this.todoLists.create(groupId, input);
+    const todoList = await this.prisma.$transaction(async (transaction) => {
+      const created = await this.todoLists.createWithTransaction(groupId, input, transaction);
+      await this.activities.record(
+        {
+          groupId,
+          actorId: userId,
+          type: ActivityType.TODO_LIST_CREATED,
+          entityType: ActivityEntityType.TODO_LIST,
+          entityId: created.id,
+        },
+        transaction,
+      );
+      return created;
+    });
 
     this.logger.log(
       'Todo list created',

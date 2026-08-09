@@ -14,8 +14,26 @@ export class TodoRepository {
     createdById: string,
     input: CreateTodoInput,
   ): Promise<TodoResult> {
-    return this.prisma.$transaction(async (transaction) => {
-      const lastTodo = await transaction.todo.findFirst({
+    return this.createInTransaction(todoListId, createdById, input);
+  }
+
+  createWithTransaction(
+    todoListId: string,
+    createdById: string,
+    input: CreateTodoInput,
+    transaction: Prisma.TransactionClient,
+  ): Promise<TodoResult> {
+    return this.createInTransaction(todoListId, createdById, input, transaction);
+  }
+
+  private createInTransaction(
+    todoListId: string,
+    createdById: string,
+    input: CreateTodoInput,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<TodoResult> {
+    const create = async (client: Prisma.TransactionClient): Promise<TodoResult> => {
+      const lastTodo = await client.todo.findFirst({
         where: { todoListId },
         select: { rank: true },
         orderBy: [{ rank: 'desc' }, { id: 'asc' }],
@@ -24,7 +42,7 @@ export class TodoRepository {
         ? lastTodo.rank.add(TODO_RANK_STEP)
         : new Prisma.Decimal(TODO_RANK_STEP);
 
-      return transaction.todo.create({
+      return client.todo.create({
         data: {
           ...input,
           todoListId,
@@ -32,7 +50,8 @@ export class TodoRepository {
           rank,
         },
       });
-    });
+    };
+    return transaction ? create(transaction) : this.prisma.$transaction(create);
   }
 
   findByTodoListId(todoListId: string): Promise<TodoResult[]> {
@@ -46,8 +65,13 @@ export class TodoRepository {
     return this.prisma.todo.findUnique({ where: { id: todoId } });
   }
 
-  updateCompletion(todoId: string, input: UpdateTodoCompletionInput): Promise<TodoResult> {
-    return this.prisma.todo.update({
+  updateCompletion(
+    todoId: string,
+    input: UpdateTodoCompletionInput,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<TodoResult> {
+    const client = transaction ?? this.prisma;
+    return client.todo.update({
       where: { id: todoId },
       data: input,
     });

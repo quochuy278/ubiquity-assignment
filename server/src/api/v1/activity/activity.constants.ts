@@ -1,0 +1,14 @@
+export enum ActivityType {
+  TODO_LIST_CREATED = 'TODO_LIST_CREATED',
+  TODO_CREATED = 'TODO_CREATED',
+  TODO_COMPLETED = 'TODO_COMPLETED',
+  TODO_UNCOMPLETED = 'TODO_UNCOMPLETED',
+}
+
+export enum ActivityEntityType {
+  TODO_LIST = 'TODO_LIST',
+  TODO = 'TODO',
+}
+
+export const DEFAULT_ACTIVITY_PAGE_SIZE = 50;
+export const MAX_ACTIVITY_PAGE_SIZE = 100;

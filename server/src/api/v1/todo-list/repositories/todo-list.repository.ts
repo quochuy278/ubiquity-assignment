@@ -10,8 +10,24 @@ export class TodoListRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(groupId: string, input: CreateTodoListInput): Promise<TodoListResult> {
-    return this.prisma.$transaction(async (transaction) => {
-      const lastTodoList = await transaction.todoList.findFirst({
+    return this.createInTransaction(groupId, input);
+  }
+
+  createWithTransaction(
+    groupId: string,
+    input: CreateTodoListInput,
+    transaction: Prisma.TransactionClient,
+  ): Promise<TodoListResult> {
+    return this.createInTransaction(groupId, input, transaction);
+  }
+
+  private createInTransaction(
+    groupId: string,
+    input: CreateTodoListInput,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<TodoListResult> {
+    const create = async (client: Prisma.TransactionClient): Promise<TodoListResult> => {
+      const lastTodoList = await client.todoList.findFirst({
         where: { groupId },
         select: { rank: true },
         orderBy: [{ rank: 'desc' }, { id: 'asc' }],
@@ -20,14 +36,16 @@ export class TodoListRepository {
         ? lastTodoList.rank.add(TODO_LIST_RANK_STEP)
         : new Prisma.Decimal(TODO_LIST_RANK_STEP);
 
-      return transaction.todoList.create({
+      return client.todoList.create({
         data: {
           ...input,
           groupId,
           rank,
         },
       });
-    });
+    };
+
+    return transaction ? create(transaction) : this.prisma.$transaction(create);
   }
 
   findByGroupId(groupId: string): Promise<TodoListResult[]> {
