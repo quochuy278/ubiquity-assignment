@@ -12,7 +12,7 @@ import type { CreateTodoDto } from './dto/create-todo.dto';
 import type { UpdateTodoCompletionDto } from './dto/update-todo-completion.dto';
 import { TodoRepository } from './repositories/todo.repository';
 import { TodoStatus } from './todo.constants';
-import type { CreateTodoInput, TodoResult } from './todo.types';
+import type { CreateTodoInput, TodoAccessResult, TodoResult } from './todo.types';
 
 @Injectable()
 export class TodoService {
@@ -59,7 +59,7 @@ export class TodoService {
   }
 
   async findById(userId: string, todoId: string): Promise<TodoResult> {
-    const { todo } = await this.findAccessibleTodo(userId, todoId);
+    const { todo } = await this.findByIdWithGroup(userId, todoId);
     return todo;
   }
 
@@ -68,7 +68,7 @@ export class TodoService {
     todoId: string,
     input: UpdateTodoCompletionDto,
   ): Promise<TodoResult> {
-    const { todo, groupId } = await this.findAccessibleTodo(userId, todoId);
+    const { todo, groupId } = await this.findByIdWithGroup(userId, todoId);
     const completedAt = input.completed ? now().toDate() : null;
     const status = input.completed ? TodoStatus.COMPLETED : TodoStatus.ACTIVE;
     const updatedTodo = await this.prisma.$transaction(async (transaction) => {
@@ -103,10 +103,7 @@ export class TodoService {
     return updatedTodo;
   }
 
-  private async findAccessibleTodo(
-    userId: string,
-    todoId: string,
-  ): Promise<{ todo: TodoResult; groupId: string }> {
+  async findByIdWithGroup(userId: string, todoId: string): Promise<TodoAccessResult> {
     const todo = await this.todos.findById(todoId);
 
     if (!todo) {

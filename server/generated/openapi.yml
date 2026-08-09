@@ -789,6 +789,221 @@ paths:
       security: *a6
       summary: Update a todo's completion state
       tags: *a7
+  /api/v1/todos/{todoId}/subtasks:
+    post:
+      operationId: SubTaskController_create_v1
+      parameters:
+        - name: todoId
+          required: true
+          in: path
+          description: Todo ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubTaskDto"
+      responses:
+        "201":
+          description: The subtask was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubTaskResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: &a8
+        - bearer: []
+      summary: Create a subtask within a todo
+      tags: &a9
+        - subtasks
+    get:
+      operationId: SubTaskController_findForTodo_v1
+      parameters:
+        - name: todoId
+          required: true
+          in: path
+          description: Todo ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The subtasks were retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubTaskResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a8
+      summary: Get the subtasks belonging to a todo
+      tags: *a9
+  /api/v1/subtasks/{subtaskId}:
+    get:
+      operationId: SubTaskController_findById_v1
+      parameters:
+        - name: subtaskId
+          required: true
+          in: path
+          description: Subtask ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The subtask was retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubTaskResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The subtask was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a8
+      summary: Get a subtask by ID
+      tags: *a9
+  /api/v1/subtasks/{subtaskId}/completion:
+    patch:
+      operationId: SubTaskController_updateCompletion_v1
+      parameters:
+        - name: subtaskId
+          required: true
+          in: path
+          description: Subtask ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubTaskCompletionDto"
+      responses:
+        "200":
+          description: The subtask completion state was updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubTaskResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The subtask was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a8
+      summary: Update a subtask's completion state
+      tags: *a9
 info:
   title: Ubiquity API
   description: Ubiquity Assignment API documentation
@@ -799,6 +1014,7 @@ tags:
   - name: app
   - name: auth
   - name: groups
+  - name: subtasks
   - name: todo-lists
   - name: todos
 servers: []
@@ -822,6 +1038,7 @@ components:
       enum:
         - TASK_NOT_FOUND
         - TODO_LIST_NOT_FOUND
+        - SUBTASK_NOT_FOUND
         - GROUP_NOT_FOUND
         - EMAIL_ALREADY_REGISTERED
         - INVALID_CREDENTIALS
@@ -1005,11 +1222,15 @@ components:
         - TODO_CREATED
         - TODO_COMPLETED
         - TODO_UNCOMPLETED
+        - SUBTASK_CREATED
+        - SUBTASK_COMPLETED
+        - SUBTASK_UNCOMPLETED
     ActivityEntityType:
       type: string
       enum:
         - TODO_LIST
         - TODO
+        - SUBTASK
     ActivityResponseDto:
       type: object
       properties:
@@ -1175,6 +1396,50 @@ components:
         - createdAt
         - updatedAt
     UpdateTodoCompletionDto:
+      type: object
+      properties:
+        completed:
+          type: boolean
+          example: true
+      required:
+        - completed
+    CreateSubTaskDto:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Buy milk
+      required:
+        - title
+    SubTaskResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        todoId:
+          type: string
+        title:
+          type: string
+        completed:
+          type: boolean
+        rank:
+          type: string
+          example: "1000"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - todoId
+        - title
+        - completed
+        - rank
+        - createdAt
+        - updatedAt
+    UpdateSubTaskCompletionDto:
       type: object
       properties:
         completed:

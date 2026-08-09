@@ -10,5 +10,6 @@ import { TodoService } from './todo.service';
   imports: [AuthModule, TodoListModule, ActivityModule],
   controllers: [TodoController],
   providers: [TodoService, TodoRepository],
+  exports: [TodoService],
 })
 export class TodoModule {}
