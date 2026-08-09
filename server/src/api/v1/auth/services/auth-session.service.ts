@@ -77,6 +77,10 @@ export class AuthSessionService {
     };
   }
 
+  logout(userId: string, sessionId: string): Promise<void> {
+    return this.sessions.deleteForUser(sessionId, userId);
+  }
+
   private invalidRefreshToken(): GlobalException {
     return new GlobalException(ErrorCode.INVALID_REFRESH_TOKEN);
   }

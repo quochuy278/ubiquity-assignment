@@ -156,6 +156,39 @@ paths:
                 $ref: "#/components/schemas/ErrorResponseDto"
       summary: Rotate a refresh token and issue a new token pair
       tags: *a1
+  /api/v1/auth/logout:
+    post:
+      operationId: AuthController_logout_v1
+      parameters: []
+      responses:
+        "204":
+          description: The current session was revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - bearer: []
+      summary: Log out the current authenticated session
+      tags: *a1
   /api/v1/auth/me:
     get:
       operationId: AuthController_me_v1
@@ -855,6 +888,9 @@ components:
           description: Opaque refresh token returned by register, login, or refresh
       required:
         - refreshToken
+    LogoutResponseDto:
+      type: object
+      properties: {}
     GroupType:
       type: string
       enum:

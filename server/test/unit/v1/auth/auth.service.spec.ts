@@ -19,6 +19,7 @@ describe('Authentication use-case orchestration', () => {
   const verifyPassword = jest.fn();
   const createSession = jest.fn();
   const refreshSession = jest.fn();
+  const logoutSession = jest.fn();
   const signAccessToken = jest.fn();
   const getAccessTokenTtlSeconds = jest.fn(() => 900);
   const users = {
@@ -34,6 +35,7 @@ describe('Authentication use-case orchestration', () => {
   const sessions = {
     create: createSession,
     refresh: refreshSession,
+    logout: logoutSession,
   } as unknown as AuthSessionService;
   const tokens = {
     signAccessToken,
@@ -150,5 +152,12 @@ describe('Authentication use-case orchestration', () => {
       updatedAt: '2026-08-01T10:00:00.000Z',
     });
     expect(result).not.toHaveProperty('passwordHash');
+  });
+
+  it('logs out the current authenticated session', async () => {
+    logoutSession.mockResolvedValue(undefined);
+
+    await expect(auth.logout('user-1', 'session-1')).resolves.toBeUndefined();
+    expect(logoutSession).toHaveBeenCalledWith('user-1', 'session-1');
   });
 });
