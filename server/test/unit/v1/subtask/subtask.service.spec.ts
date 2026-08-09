@@ -74,7 +74,7 @@ describe('Subtask use-case behavior and authorization', () => {
   ] as const)('updates completion to %s with the expected activity', async (completed, type) => {
     const updated = { ...subtask, completed };
     findSubTaskById.mockResolvedValue(subtask);
-    updateCompletion.mockResolvedValue(updated);
+    updateCompletion.mockResolvedValue({ subtask: updated, transitioned: true });
 
     await expect(service.updateCompletion('user-1', 'subtask-1', { completed })).resolves.toBe(
       updated,
@@ -90,6 +90,19 @@ describe('Subtask use-case behavior and authorization', () => {
       },
       transactionClient,
     );
+  });
+
+  it('returns the current subtask without activity when completion is already at the target state', async () => {
+    const completedSubTask = { ...subtask, completed: true };
+    findSubTaskById.mockResolvedValue(completedSubTask);
+    updateCompletion.mockResolvedValue({ subtask: completedSubTask, transitioned: false });
+
+    await expect(
+      service.updateCompletion('user-1', 'subtask-1', { completed: true }),
+    ).resolves.toBe(completedSubTask);
+
+    expect(updateCompletion).toHaveBeenCalled();
+    expect(recordActivity).not.toHaveBeenCalled();
   });
 
   it('maps inaccessible and missing parent chains to the same subtask not-found result', async () => {

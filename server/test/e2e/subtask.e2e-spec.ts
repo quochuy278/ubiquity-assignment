@@ -97,6 +97,22 @@ describe('Subtask completion over real HTTP and PostgreSQL', () => {
       .send({ completed: true })
       .expect(200)
       .expect(({ body }) => expect(body.completed).toBe(true));
+    await request(app.getHttpServer())
+      .patch(`/api/v1/subtasks/${subtaskId}/completion`)
+      .set(owner.authorization)
+      .send({ completed: true })
+      .expect(200)
+      .expect(({ body }) => expect(body.completed).toBe(true));
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.SUBTASK,
+          entityId: subtaskId,
+          type: ActivityType.SUBTASK_COMPLETED,
+        },
+      }),
+    ).resolves.toBe(1);
 
     await request(app.getHttpServer())
       .get(`/api/v1/subtasks/${subtaskId}`)
@@ -121,6 +137,22 @@ describe('Subtask completion over real HTTP and PostgreSQL', () => {
       .set(owner.authorization)
       .send({ completed: false })
       .expect(200);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/subtasks/${subtaskId}/completion`)
+      .set(owner.authorization)
+      .send({ completed: false })
+      .expect(200)
+      .expect(({ body }) => expect(body.completed).toBe(false));
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.SUBTASK,
+          entityId: subtaskId,
+          type: ActivityType.SUBTASK_UNCOMPLETED,
+        },
+      }),
+    ).resolves.toBe(1);
     await request(app.getHttpServer())
       .get(`/api/v1/subtasks/${subtaskId}`)
       .set(owner.authorization)
@@ -154,6 +186,58 @@ describe('Subtask completion over real HTTP and PostgreSQL', () => {
       .send({ completed: true })
       .expect(404)
       .expect({ code: ErrorCode.SUBTASK_NOT_FOUND });
+
+    await Promise.all([
+      request(app.getHttpServer())
+        .patch(`/api/v1/subtasks/${subtaskId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: true })
+        .expect(200),
+      request(app.getHttpServer())
+        .patch(`/api/v1/subtasks/${subtaskId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: true })
+        .expect(200),
+    ]);
+    await expect(
+      prisma.subTask.findUniqueOrThrow({ where: { id: subtaskId }, select: { completed: true } }),
+    ).resolves.toEqual({ completed: true });
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.SUBTASK,
+          entityId: subtaskId,
+          type: ActivityType.SUBTASK_COMPLETED,
+        },
+      }),
+    ).resolves.toBe(2);
+
+    await Promise.all([
+      request(app.getHttpServer())
+        .patch(`/api/v1/subtasks/${subtaskId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: false })
+        .expect(200),
+      request(app.getHttpServer())
+        .patch(`/api/v1/subtasks/${subtaskId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: false })
+        .expect(200),
+    ]);
+    await expect(
+      prisma.subTask.findUniqueOrThrow({ where: { id: subtaskId }, select: { completed: true } }),
+    ).resolves.toEqual({ completed: false });
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.SUBTASK,
+          entityId: subtaskId,
+          type: ActivityType.SUBTASK_UNCOMPLETED,
+        },
+      }),
+    ).resolves.toBe(2);
 
     const activityCountBeforeRollback = await prisma.activityEvent.count({ where: { groupId } });
     jest

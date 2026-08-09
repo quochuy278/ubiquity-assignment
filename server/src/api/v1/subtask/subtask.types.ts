@@ -5,3 +5,8 @@ export interface CreateSubTaskInput {
 }
 
 export type SubTaskResult = SubTask;
+
+export interface SubTaskCompletionTransitionResult {
+  subtask: SubTaskResult;
+  transitioned: boolean;
+}

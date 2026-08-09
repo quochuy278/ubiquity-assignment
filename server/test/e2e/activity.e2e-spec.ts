@@ -4,6 +4,7 @@ import type { App } from 'supertest/types';
 import { ActivityEntityType, ActivityType } from '../../src/api/v1/activity/activity.constants';
 import { ActivityRepository } from '../../src/api/v1/activity/repositories/activity.repository';
 import { GroupType } from '../../src/api/v1/group/group.constants';
+import { TodoStatus } from '../../src/api/v1/todo/todo.constants';
 import { ErrorCode } from '../../src/common/exception/error-code';
 import { PrismaService } from '../../src/shared/database/prisma/prisma.service';
 import { createE2eApplication } from './support/e2e-application';
@@ -81,8 +82,40 @@ describe('Group activity history over real HTTP and PostgreSQL', () => {
     await request(app.getHttpServer())
       .patch(`/api/v1/todos/${todoId}/completion`)
       .set(owner.authorization)
+      .send({ completed: true })
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe(TodoStatus.COMPLETED));
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.TODO,
+          entityId: todoId,
+          type: ActivityType.TODO_COMPLETED,
+        },
+      }),
+    ).resolves.toBe(1);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/todos/${todoId}/completion`)
+      .set(owner.authorization)
       .send({ completed: false })
       .expect(200);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/todos/${todoId}/completion`)
+      .set(owner.authorization)
+      .send({ completed: false })
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe(TodoStatus.ACTIVE));
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.TODO,
+          entityId: todoId,
+          type: ActivityType.TODO_UNCOMPLETED,
+        },
+      }),
+    ).resolves.toBe(1);
 
     const firstPage = await request(app.getHttpServer())
       .get(`/api/v1/groups/${groupId}/activities?limit=2`)
@@ -132,6 +165,58 @@ describe('Group activity history over real HTTP and PostgreSQL', () => {
       .expect(404)
       .expect({ code: ErrorCode.GROUP_NOT_FOUND });
 
+    await Promise.all([
+      request(app.getHttpServer())
+        .patch(`/api/v1/todos/${todoId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: true })
+        .expect(200),
+      request(app.getHttpServer())
+        .patch(`/api/v1/todos/${todoId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: true })
+        .expect(200),
+    ]);
+    await expect(
+      prisma.todo.findUniqueOrThrow({ where: { id: todoId }, select: { status: true } }),
+    ).resolves.toEqual({ status: TodoStatus.COMPLETED });
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.TODO,
+          entityId: todoId,
+          type: ActivityType.TODO_COMPLETED,
+        },
+      }),
+    ).resolves.toBe(2);
+
+    await Promise.all([
+      request(app.getHttpServer())
+        .patch(`/api/v1/todos/${todoId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: false })
+        .expect(200),
+      request(app.getHttpServer())
+        .patch(`/api/v1/todos/${todoId}/completion`)
+        .set(owner.authorization)
+        .send({ completed: false })
+        .expect(200),
+    ]);
+    await expect(
+      prisma.todo.findUniqueOrThrow({ where: { id: todoId }, select: { status: true } }),
+    ).resolves.toEqual({ status: TodoStatus.ACTIVE });
+    await expect(
+      prisma.activityEvent.count({
+        where: {
+          groupId,
+          entityType: ActivityEntityType.TODO,
+          entityId: todoId,
+          type: ActivityType.TODO_UNCOMPLETED,
+        },
+      }),
+    ).resolves.toBe(2);
+
     const activityCountBeforeFailedMutation = await prisma.activityEvent.count({
       where: { groupId },
     });
@@ -144,10 +229,27 @@ describe('Group activity history over real HTTP and PostgreSQL', () => {
       activityCountBeforeFailedMutation,
     );
 
+    const activityCreateSpy = jest.spyOn(activityRepository, 'create');
+    activityCreateSpy.mockRejectedValueOnce(new Error('activity write failed'));
+    await request(app.getHttpServer())
+      .patch(`/api/v1/todos/${todoId}/completion`)
+      .set(owner.authorization)
+      .send({ completed: true })
+      .expect(500)
+      .expect({ code: ErrorCode.INTERNAL_ERROR });
+
+    await expect(
+      prisma.todo.findUniqueOrThrow({
+        where: { id: todoId },
+        select: { status: true, completedAt: true },
+      }),
+    ).resolves.toEqual({ status: TodoStatus.ACTIVE, completedAt: null });
+    await expect(prisma.activityEvent.count({ where: { groupId } })).resolves.toBe(
+      activityCountBeforeFailedMutation,
+    );
+
     const rolledBackTitle = createUniqueName('Rolled back todo');
-    jest
-      .spyOn(activityRepository, 'create')
-      .mockRejectedValueOnce(new Error('activity write failed'));
+    activityCreateSpy.mockRejectedValueOnce(new Error('activity write failed'));
     await request(app.getHttpServer())
       .post(`/api/v1/lists/${todoListId}/todos`)
       .set(owner.authorization)

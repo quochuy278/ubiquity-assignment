@@ -72,7 +72,7 @@ export class TodoService {
     const completedAt = input.completed ? now().toDate() : null;
     const status = input.completed ? TodoStatus.COMPLETED : TodoStatus.ACTIVE;
     const updatedTodo = await this.prisma.$transaction(async (transaction) => {
-      const updated = await this.todos.updateCompletion(
+      const transition = await this.todos.updateCompletion(
         todo.id,
         {
           status,
@@ -81,17 +81,19 @@ export class TodoService {
         },
         transaction,
       );
-      await this.activities.record(
-        {
-          groupId,
-          actorId: userId,
-          type: input.completed ? ActivityType.TODO_COMPLETED : ActivityType.TODO_UNCOMPLETED,
-          entityType: ActivityEntityType.TODO,
-          entityId: updated.id,
-        },
-        transaction,
-      );
-      return updated;
+      if (transition.transitioned) {
+        await this.activities.record(
+          {
+            groupId,
+            actorId: userId,
+            type: input.completed ? ActivityType.TODO_COMPLETED : ActivityType.TODO_UNCOMPLETED,
+            entityType: ActivityEntityType.TODO,
+            entityId: transition.todo.id,
+          },
+          transaction,
+        );
+      }
+      return transition.todo;
     });
 
     this.logger.log(

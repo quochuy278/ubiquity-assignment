@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma/prisma.service';
-import type { CreateTodoInput, TodoResult, UpdateTodoCompletionInput } from '../todo.types';
+import type {
+  CreateTodoInput,
+  TodoCompletionTransitionResult,
+  TodoResult,
+  UpdateTodoCompletionInput,
+} from '../todo.types';
 
 const TODO_RANK_STEP = 1000;
 
@@ -65,15 +70,17 @@ export class TodoRepository {
     return this.prisma.todo.findUnique({ where: { id: todoId } });
   }
 
-  updateCompletion(
+  async updateCompletion(
     todoId: string,
     input: UpdateTodoCompletionInput,
-    transaction?: Prisma.TransactionClient,
-  ): Promise<TodoResult> {
-    const client = transaction ?? this.prisma;
-    return client.todo.update({
-      where: { id: todoId },
+    transaction: Prisma.TransactionClient,
+  ): Promise<TodoCompletionTransitionResult> {
+    const update = await transaction.todo.updateMany({
+      where: { id: todoId, status: { not: input.status } },
       data: input,
     });
+    const todo = await transaction.todo.findUniqueOrThrow({ where: { id: todoId } });
+
+    return { todo, transitioned: update.count === 1 };
   }
 }

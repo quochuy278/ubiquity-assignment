@@ -63,22 +63,26 @@ export class SubTaskService {
   ): Promise<SubTaskResult> {
     const { subtask, groupId } = await this.findAccessibleSubTask(userId, subtaskId);
     const updatedSubTask = await this.prisma.$transaction(async (transaction) => {
-      const updated = await this.subtasks.updateCompletion(
+      const transition = await this.subtasks.updateCompletion(
         subtask.id,
         input.completed,
         transaction,
       );
-      await this.activities.record(
-        {
-          groupId,
-          actorId: userId,
-          type: input.completed ? ActivityType.SUBTASK_COMPLETED : ActivityType.SUBTASK_UNCOMPLETED,
-          entityType: ActivityEntityType.SUBTASK,
-          entityId: updated.id,
-        },
-        transaction,
-      );
-      return updated;
+      if (transition.transitioned) {
+        await this.activities.record(
+          {
+            groupId,
+            actorId: userId,
+            type: input.completed
+              ? ActivityType.SUBTASK_COMPLETED
+              : ActivityType.SUBTASK_UNCOMPLETED,
+            entityType: ActivityEntityType.SUBTASK,
+            entityId: transition.subtask.id,
+          },
+          transaction,
+        );
+      }
+      return transition.subtask;
     });
 
     this.logger.log(

@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, type SubTask } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma/prisma.service';
-import type { CreateSubTaskInput, SubTaskResult } from '../subtask.types';
+import type {
+  CreateSubTaskInput,
+  SubTaskCompletionTransitionResult,
+  SubTaskResult,
+} from '../subtask.types';
 
 const SUBTASK_RANK_STEP = 1000;
 
@@ -47,14 +51,17 @@ export class SubTaskRepository {
     return this.prisma.subTask.findUnique({ where: { id: subtaskId } });
   }
 
-  updateCompletion(
+  async updateCompletion(
     subtaskId: string,
     completed: boolean,
     transaction: Prisma.TransactionClient,
-  ): Promise<SubTask> {
-    return transaction.subTask.update({
-      where: { id: subtaskId },
+  ): Promise<SubTaskCompletionTransitionResult> {
+    const update = await transaction.subTask.updateMany({
+      where: { id: subtaskId, completed: { not: completed } },
       data: { completed },
     });
+    const subtask = await transaction.subTask.findUniqueOrThrow({ where: { id: subtaskId } });
+
+    return { subtask, transitioned: update.count === 1 };
   }
 }
