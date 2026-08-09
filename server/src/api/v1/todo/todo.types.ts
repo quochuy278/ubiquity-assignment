@@ -13,3 +13,8 @@ export interface UpdateTodoCompletionInput {
 }
 
 export type TodoResult = Todo;
+
+export interface TodoAccessResult {
+  todo: TodoResult;
+  groupId: string;
+}
