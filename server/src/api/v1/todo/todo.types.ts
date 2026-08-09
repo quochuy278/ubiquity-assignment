@@ -12,6 +12,11 @@ export interface UpdateTodoCompletionInput {
   updatedById: string;
 }
 
+export interface TodoCompletionTransitionResult {
+  todo: TodoResult;
+  transitioned: boolean;
+}
+
 export type TodoResult = Todo;
 
 export interface TodoAccessResult {

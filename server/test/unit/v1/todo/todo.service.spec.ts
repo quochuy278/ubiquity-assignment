@@ -169,7 +169,7 @@ describe('Todo use-case behavior and authorization', () => {
       updatedById: 'user-1',
     };
     findTodoById.mockResolvedValue(todo);
-    updateCompletion.mockResolvedValue(completedTodo);
+    updateCompletion.mockResolvedValue({ todo: completedTodo, transitioned: true });
 
     await expect(service.updateCompletion('user-1', 'todo-1', { completed: true })).resolves.toBe(
       completedTodo,
@@ -214,7 +214,7 @@ describe('Todo use-case behavior and authorization', () => {
       completedAt: dayjs('2026-08-07T12:00:00.000Z').toDate(),
     };
     findTodoById.mockResolvedValue(completedTodo);
-    updateCompletion.mockResolvedValue(todo);
+    updateCompletion.mockResolvedValue({ todo, transitioned: true });
 
     await service.updateCompletion('user-1', 'todo-1', { completed: false });
 
@@ -231,6 +231,23 @@ describe('Todo use-case behavior and authorization', () => {
       expect.objectContaining({ type: 'TODO_UNCOMPLETED' }),
       transactionClient,
     );
+  });
+
+  it('returns the current todo without activity when completion is already at the target state', async () => {
+    const completedTodo = {
+      ...todo,
+      status: TodoStatus.COMPLETED,
+      completedAt: dayjs('2026-08-07T12:00:00.000Z').toDate(),
+    };
+    findTodoById.mockResolvedValue(completedTodo);
+    updateCompletion.mockResolvedValue({ todo: completedTodo, transitioned: false });
+
+    await expect(service.updateCompletion('user-1', 'todo-1', { completed: true })).resolves.toBe(
+      completedTodo,
+    );
+
+    expect(updateCompletion).toHaveBeenCalled();
+    expect(recordActivity).not.toHaveBeenCalled();
   });
 
   it('does not mutate an inaccessible todo', async () => {

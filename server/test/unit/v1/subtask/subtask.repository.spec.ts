@@ -6,8 +6,9 @@ describe('Subtask persistence', () => {
   const findFirst = jest.fn();
   const create = jest.fn();
   const findMany = jest.fn();
-  const update = jest.fn();
-  const transaction = { subTask: { findFirst, create, update } };
+  const updateMany = jest.fn();
+  const findUniqueOrThrow = jest.fn();
+  const transaction = { subTask: { findFirst, create, updateMany, findUniqueOrThrow } };
   const prisma = { subTask: { findMany } } as unknown as PrismaService;
   const repository = new SubTaskRepository(prisma);
 
@@ -43,17 +44,28 @@ describe('Subtask persistence', () => {
     });
   });
 
-  it('updates completion through the supplied transaction', async () => {
-    update.mockResolvedValue({ id: 'subtask-1', completed: true });
+  it.each([
+    [1, true],
+    [0, false],
+  ] as const)(
+    'reports whether a conditional completion update changed a row',
+    async (count, transitioned) => {
+      const subtask = { id: 'subtask-1', completed: true };
+      updateMany.mockResolvedValue({ count });
+      findUniqueOrThrow.mockResolvedValue(subtask);
 
-    await repository.updateCompletion(
-      'subtask-1',
-      true,
-      transaction as unknown as Prisma.TransactionClient,
-    );
-    expect(update).toHaveBeenCalledWith({
-      where: { id: 'subtask-1' },
-      data: { completed: true },
-    });
-  });
+      await expect(
+        repository.updateCompletion(
+          'subtask-1',
+          true,
+          transaction as unknown as Prisma.TransactionClient,
+        ),
+      ).resolves.toEqual({ subtask, transitioned });
+      expect(updateMany).toHaveBeenCalledWith({
+        where: { id: 'subtask-1', completed: { not: true } },
+        data: { completed: true },
+      });
+      expect(findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: 'subtask-1' } });
+    },
+  );
 });
