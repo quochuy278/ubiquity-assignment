@@ -7,6 +7,7 @@ import type { SessionContext } from '../../../shared/session/session.types';
 import { AuthService } from './auth.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
+import { LogoutResponseDto } from './dto/logout-response.dto';
 import { RefreshRequestDto } from './dto/refresh-request.dto';
 import { RegisterRequestDto } from './dto/register-request.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -80,6 +81,29 @@ export class AuthController {
   })
   refresh(@Body() input: RefreshRequestDto): Promise<AuthResponseDto> {
     return this.auth.refresh(input.refreshToken);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @ApiEndpoint({
+    operation: { summary: 'Log out the current authenticated session' },
+    response: {
+      status: HttpStatus.NO_CONTENT,
+      description: 'The current session was revoked',
+      type: LogoutResponseDto,
+    },
+    responses: [
+      {
+        status: HttpStatus.UNAUTHORIZED,
+        description: 'The access token is missing or invalid',
+        type: ErrorResponseDto,
+      },
+    ],
+  })
+  logout(@Session() session: SessionContext): Promise<void> {
+    return this.auth.logout(session.userId, session.sessionId);
   }
 
   @Get('me')

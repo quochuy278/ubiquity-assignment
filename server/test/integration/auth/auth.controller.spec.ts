@@ -35,6 +35,7 @@ describe('Versioned authentication HTTP endpoints', () => {
   const login = jest.fn().mockResolvedValue(authResponse);
   const refresh = jest.fn().mockResolvedValue(authResponse);
   const me = jest.fn().mockResolvedValue(authResponse.user);
+  const logout = jest.fn().mockResolvedValue(undefined);
   const accessTokenSecret = 'test-access-token-secret-at-least-32-characters';
   let app: INestApplication<App>;
   let jwtService: JwtService;
@@ -49,7 +50,7 @@ describe('Versioned authentication HTTP endpoints', () => {
       providers: [
         {
           provide: AuthService,
-          useValue: { register, login, refresh, me },
+          useValue: { register, login, refresh, me, logout },
         },
         {
           provide: ConfigService,
@@ -140,6 +141,17 @@ describe('Versioned authentication HTTP endpoints', () => {
       .expect(authResponse.user);
 
     expect(me).toHaveBeenCalledWith('user-1');
+  });
+
+  it('logs out the current authenticated session through POST /api/v1/auth/logout', async () => {
+    const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(204);
+
+    expect(logout).toHaveBeenCalledWith('user-1', 'session-1');
   });
 
   it('rejects GET /api/v1/auth/me when no Bearer token is provided', async () => {

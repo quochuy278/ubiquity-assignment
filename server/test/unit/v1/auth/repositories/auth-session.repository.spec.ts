@@ -6,8 +6,9 @@ describe('Authentication session persistence', () => {
   const create = jest.fn();
   const findUnique = jest.fn();
   const updateMany = jest.fn();
+  const deleteMany = jest.fn();
   const prisma = {
-    userSession: { create, findUnique, updateMany },
+    userSession: { create, findUnique, updateMany, deleteMany },
   } as unknown as PrismaService;
   const sessions = new AuthSessionRepository(prisma);
 
@@ -64,5 +65,14 @@ describe('Authentication session persistence', () => {
         expiresAt: dayjs('2026-09-06T12:00:00.000Z').toDate(),
       }),
     ).resolves.toBe(false);
+  });
+
+  it('deletes a session only when both its ID and user match', async () => {
+    deleteMany.mockResolvedValue({ count: 1 });
+
+    await expect(sessions.deleteForUser('session-1', 'user-1')).resolves.toBeUndefined();
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { id: 'session-1', userId: 'user-1' },
+    });
   });
 });

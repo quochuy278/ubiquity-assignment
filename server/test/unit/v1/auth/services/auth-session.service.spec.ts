@@ -9,10 +9,12 @@ describe('Refresh-token session lifecycle', () => {
   const createSessionRecord = jest.fn();
   const findSession = jest.fn();
   const rotateSession = jest.fn();
+  const deleteSession = jest.fn();
   const repository = {
     create: createSessionRecord,
     findById: findSession,
     rotate: rotateSession,
+    deleteForUser: deleteSession,
   } as unknown as AuthSessionRepository;
   const createRefreshToken = jest.fn();
   const parseRefreshToken = jest.fn();
@@ -113,5 +115,12 @@ describe('Refresh-token session lifecycle', () => {
     await expect(sessions.refresh('session-1.refresh-secret')).rejects.toMatchObject({
       code: ErrorCode.INVALID_REFRESH_TOKEN,
     });
+  });
+
+  it('revokes only the authenticated current session during logout', async () => {
+    deleteSession.mockResolvedValue(undefined);
+
+    await expect(sessions.logout('user-1', 'session-1')).resolves.toBeUndefined();
+    expect(deleteSession).toHaveBeenCalledWith('session-1', 'user-1');
   });
 });

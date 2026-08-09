@@ -73,6 +73,10 @@ export class AuthService {
     return mapPublicUser(user);
   }
 
+  logout(userId: string, sessionId: string): Promise<void> {
+    return this.sessions.logout(userId, sessionId);
+  }
+
   private async createAuthenticatedSession(user: PublicUser): Promise<AuthResponseDto> {
     const session = await this.sessions.create(user.id);
     const accessToken = await this.tokens.signAccessToken(user.id, session.sessionId);

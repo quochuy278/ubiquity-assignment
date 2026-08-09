@@ -60,4 +60,10 @@ export class AuthSessionRepository {
 
     return result.count === 1;
   }
+
+  async deleteForUser(sessionId: string, userId: string): Promise<void> {
+    await this.prisma.userSession.deleteMany({
+      where: { id: sessionId, userId },
+    });
+  }
 }
