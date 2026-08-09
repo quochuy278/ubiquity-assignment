@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
+import type { ActivityService } from '../../../../src/api/v1/activity/activity.service';
 import type { GroupService } from '../../../../src/api/v1/group/group.service';
 import type { TodoListRepository } from '../../../../src/api/v1/todo-list/repositories/todo-list.repository';
 import { TodoListService } from '../../../../src/api/v1/todo-list/todo-list.service';
@@ -7,6 +8,7 @@ import type { TodoListResult } from '../../../../src/api/v1/todo-list/todo-list.
 import { ErrorCode } from '../../../../src/common/exception/error-code';
 import { GlobalException } from '../../../../src/common/exception/global.exception';
 import type { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
+import type { PrismaService } from '../../../../src/shared/database/prisma/prisma.service';
 
 describe('Todo list use-case orchestration', () => {
   const todoList: TodoListResult = {
@@ -21,20 +23,32 @@ describe('Todo list use-case orchestration', () => {
   };
   const findGroupById = jest.fn();
   const createTodoList = jest.fn();
+  const recordActivity = jest.fn();
+  const transactionClient = { activityEvent: {}, todoList: {} };
+  const runTransaction = jest.fn(
+    (callback: (client: typeof transactionClient) => Promise<unknown>) =>
+      callback(transactionClient),
+  );
   const findByGroupId = jest.fn();
   const findTodoListById = jest.fn();
   const log = jest.fn();
   const groups = { findById: findGroupById } as unknown as GroupService;
   const todoLists = {
-    create: createTodoList,
+    createWithTransaction: createTodoList,
     findByGroupId,
     findById: findTodoListById,
   } as unknown as TodoListRepository;
+  const prisma = { $transaction: runTransaction } as unknown as PrismaService;
+  const activities = { record: recordActivity } as unknown as ActivityService;
   const logger = { log } as unknown as ApplicationLoggerService;
-  const service = new TodoListService(todoLists, groups, logger);
+  const service = new TodoListService(prisma, todoLists, groups, activities, logger);
 
   beforeEach(() => {
     jest.resetAllMocks();
+    runTransaction.mockImplementation(
+      (callback: (client: typeof transactionClient) => Promise<unknown>) =>
+        callback(transactionClient),
+    );
     findGroupById.mockResolvedValue({ id: 'group-1' });
   });
 
@@ -45,7 +59,17 @@ describe('Todo list use-case orchestration', () => {
     await expect(service.create('user-1', 'group-1', input)).resolves.toEqual(todoList);
 
     expect(findGroupById).toHaveBeenCalledWith('user-1', 'group-1');
-    expect(createTodoList).toHaveBeenCalledWith('group-1', input);
+    expect(createTodoList).toHaveBeenCalledWith('group-1', input, transactionClient);
+    expect(recordActivity).toHaveBeenCalledWith(
+      {
+        groupId: 'group-1',
+        actorId: 'user-1',
+        type: 'TODO_LIST_CREATED',
+        entityType: 'TODO_LIST',
+        entityId: 'list-1',
+      },
+      transactionClient,
+    );
     expect(findGroupById.mock.invocationCallOrder[0]).toBeLessThan(
       createTodoList.mock.invocationCallOrder[0],
     );

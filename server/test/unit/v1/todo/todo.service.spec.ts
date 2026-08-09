@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
+import type { ActivityService } from '../../../../src/api/v1/activity/activity.service';
 import type { TodoRepository } from '../../../../src/api/v1/todo/repositories/todo.repository';
 import { TodoStatus } from '../../../../src/api/v1/todo/todo.constants';
 import { TodoService } from '../../../../src/api/v1/todo/todo.service';
@@ -8,6 +9,7 @@ import type { TodoListService } from '../../../../src/api/v1/todo-list/todo-list
 import { ErrorCode } from '../../../../src/common/exception/error-code';
 import { GlobalException } from '../../../../src/common/exception/global.exception';
 import type { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
+import type { PrismaService } from '../../../../src/shared/database/prisma/prisma.service';
 
 describe('Todo use-case behavior and authorization', () => {
   const todo: TodoResult = {
@@ -30,19 +32,31 @@ describe('Todo use-case behavior and authorization', () => {
   const findByTodoListId = jest.fn();
   const findTodoById = jest.fn();
   const updateCompletion = jest.fn();
+  const recordActivity = jest.fn();
+  const transactionClient = { activityEvent: {}, todo: {} };
+  const runTransaction = jest.fn(
+    (callback: (client: typeof transactionClient) => Promise<unknown>) =>
+      callback(transactionClient),
+  );
   const log = jest.fn();
   const todoLists = { findById: findTodoListById } as unknown as TodoListService;
   const todos = {
-    create: createTodo,
+    createWithTransaction: createTodo,
     findByTodoListId,
     findById: findTodoById,
     updateCompletion,
   } as unknown as TodoRepository;
+  const prisma = { $transaction: runTransaction } as unknown as PrismaService;
+  const activities = { record: recordActivity } as unknown as ActivityService;
   const logger = { log } as unknown as ApplicationLoggerService;
-  const service = new TodoService(todos, todoLists, logger);
+  const service = new TodoService(prisma, todos, todoLists, activities, logger);
 
   beforeEach(() => {
     jest.resetAllMocks();
+    runTransaction.mockImplementation(
+      (callback: (client: typeof transactionClient) => Promise<unknown>) =>
+        callback(transactionClient),
+    );
     findTodoListById.mockResolvedValue({ id: 'list-1', groupId: 'group-1' });
   });
 
@@ -58,11 +72,26 @@ describe('Todo use-case behavior and authorization', () => {
     ).resolves.toEqual(todo);
 
     expect(findTodoListById).toHaveBeenCalledWith('user-1', 'list-1');
-    expect(createTodo).toHaveBeenCalledWith('list-1', 'user-1', {
-      title: 'Buy groceries',
-      description: 'Milk and eggs',
-      dueDate: dayjs('2026-08-10T18:00:00.000Z').toDate(),
-    });
+    expect(createTodo).toHaveBeenCalledWith(
+      'list-1',
+      'user-1',
+      {
+        title: 'Buy groceries',
+        description: 'Milk and eggs',
+        dueDate: dayjs('2026-08-10T18:00:00.000Z').toDate(),
+      },
+      transactionClient,
+    );
+    expect(recordActivity).toHaveBeenCalledWith(
+      {
+        groupId: 'group-1',
+        actorId: 'user-1',
+        type: 'TODO_CREATED',
+        entityType: 'TODO',
+        entityId: 'todo-1',
+      },
+      transactionClient,
+    );
     expect(findTodoListById.mock.invocationCallOrder[0]).toBeLessThan(
       createTodo.mock.invocationCallOrder[0],
     );
@@ -147,11 +176,25 @@ describe('Todo use-case behavior and authorization', () => {
     );
 
     expect(findTodoListById).toHaveBeenCalledWith('user-1', 'list-1');
-    expect(updateCompletion).toHaveBeenCalledWith('todo-1', {
-      status: TodoStatus.COMPLETED,
-      completedAt: expect.any(Date),
-      updatedById: 'user-1',
-    });
+    expect(updateCompletion).toHaveBeenCalledWith(
+      'todo-1',
+      {
+        status: TodoStatus.COMPLETED,
+        completedAt: expect.any(Date),
+        updatedById: 'user-1',
+      },
+      transactionClient,
+    );
+    expect(recordActivity).toHaveBeenCalledWith(
+      {
+        groupId: 'group-1',
+        actorId: 'user-1',
+        type: 'TODO_COMPLETED',
+        entityType: 'TODO',
+        entityId: 'todo-1',
+      },
+      transactionClient,
+    );
     expect(log).toHaveBeenCalledWith(
       'Todo completion updated',
       {
@@ -175,11 +218,19 @@ describe('Todo use-case behavior and authorization', () => {
 
     await service.updateCompletion('user-1', 'todo-1', { completed: false });
 
-    expect(updateCompletion).toHaveBeenCalledWith('todo-1', {
-      status: TodoStatus.ACTIVE,
-      completedAt: null,
-      updatedById: 'user-1',
-    });
+    expect(updateCompletion).toHaveBeenCalledWith(
+      'todo-1',
+      {
+        status: TodoStatus.ACTIVE,
+        completedAt: null,
+        updatedById: 'user-1',
+      },
+      transactionClient,
+    );
+    expect(recordActivity).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'TODO_UNCOMPLETED' }),
+      transactionClient,
+    );
   });
 
   it('does not mutate an inaccessible todo', async () => {

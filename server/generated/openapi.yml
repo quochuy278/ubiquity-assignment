@@ -351,6 +351,70 @@ paths:
       security: *a2
       summary: Get a group by ID
       tags: *a3
+  /api/v1/groups/{groupId}/activities:
+    get:
+      operationId: ActivityController_findForGroup_v1
+      parameters:
+        - name: groupId
+          required: true
+          in: path
+          description: Group ID
+          schema:
+            type: string
+        - name: cursor
+          required: false
+          in: query
+          description: Previous page cursor
+          schema:
+            type: string
+        - name: limit
+          required: false
+          in: query
+          description: Page size, up to 100
+          schema:
+            type: number
+      responses:
+        "200":
+          description: The group activity history was retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityPageResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The group was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security:
+        - bearer: []
+      summary: Get activity history for a group
+      tags:
+        - activities
   /api/v1/groups/{groupId}/lists:
     post:
       operationId: TodoListController_create_v1
@@ -731,6 +795,7 @@ info:
   version: "1.0"
   contact: {}
 tags:
+  - name: activities
   - name: app
   - name: auth
   - name: groups
@@ -933,6 +998,59 @@ components:
       required:
         - type
         - name
+    ActivityType:
+      type: string
+      enum:
+        - TODO_LIST_CREATED
+        - TODO_CREATED
+        - TODO_COMPLETED
+        - TODO_UNCOMPLETED
+    ActivityEntityType:
+      type: string
+      enum:
+        - TODO_LIST
+        - TODO
+    ActivityResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        groupId:
+          type: string
+        actorId:
+          type: string
+        type:
+          allOf:
+            - $ref: "#/components/schemas/ActivityType"
+        entityType:
+          allOf:
+            - $ref: "#/components/schemas/ActivityEntityType"
+        entityId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - groupId
+        - actorId
+        - type
+        - entityType
+        - entityId
+        - createdAt
+    ActivityPageResponseDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityResponseDto"
+        nextCursor:
+          type: string
+          nullable: true
+      required:
+        - items
+        - nextCursor
     CreateTodoListDto:
       type: object
       properties:
