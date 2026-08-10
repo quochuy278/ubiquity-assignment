@@ -21,6 +21,10 @@ import globalAxios from 'axios';
 import { DUMMY_BASE_URL, assertParamExists, setApiKeyToObject, setBasicAuthToObject, setBearerAuthToObject, setOAuthToObject, setSearchParams, serializeDataIfNeeded, toPathString, createRequestFunction, replaceWithSerializableTypeIfNeeded } from '../common';
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError, operationServerMap } from '../base';
+// @ts-ignore
+import type { AppResponseDto } from '../models';
+// @ts-ignore
+import type { ErrorResponseDto } from '../models';
 /**
  * AppApi - axios parameter creator
  */
@@ -28,6 +32,7 @@ export const AppApiAxiosParamCreator = function (configuration?: Configuration) 
     return {
         /**
          * 
+         * @summary Get the application welcome message
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -44,6 +49,7 @@ export const AppApiAxiosParamCreator = function (configuration?: Configuration) 
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
+            localVarHeaderParameter['Accept'] = 'application/json';
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
@@ -65,10 +71,11 @@ export const AppApiFp = function(configuration?: Configuration) {
     return {
         /**
          * 
+         * @summary Get the application welcome message
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async appControllerGetHello(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async appControllerGetHello(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AppResponseDto>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.appControllerGetHello(options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AppApi.appControllerGetHello']?.[localVarOperationServerIndex]?.url;
@@ -85,10 +92,11 @@ export const AppApiFactory = function (configuration?: Configuration, basePath?:
     return {
         /**
          * 
+         * @summary Get the application welcome message
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        appControllerGetHello(options?: RawAxiosRequestConfig): AxiosPromise<void> {
+        appControllerGetHello(options?: RawAxiosRequestConfig): AxiosPromise<AppResponseDto> {
             return localVarFp.appControllerGetHello(options).then((request) => request(axios, basePath));
         },
     };
@@ -100,10 +108,11 @@ export const AppApiFactory = function (configuration?: Configuration, basePath?:
 export interface AppApiInterface {
     /**
      * 
+     * @summary Get the application welcome message
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    appControllerGetHello(options?: RawAxiosRequestConfig): AxiosPromise<void>;
+    appControllerGetHello(options?: RawAxiosRequestConfig): AxiosPromise<AppResponseDto>;
 
 }
 
@@ -113,6 +122,7 @@ export interface AppApiInterface {
 export class AppApi extends BaseAPI implements AppApiInterface {
     /**
      * 
+     * @summary Get the application welcome message
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */

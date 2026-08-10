@@ -13,12 +13,13 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { ErrorCode } from './error-code';
 
-export * from './apis/activities-api';
-export * from './apis/app-api';
-export * from './apis/auth-api';
-export * from './apis/groups-api';
-export * from './apis/subtasks-api';
-export * from './apis/todo-lists-api';
-export * from './apis/todos-api';
+export interface ErrorResponseDto {
+    'code': ErrorCode;
+}
+
+
 

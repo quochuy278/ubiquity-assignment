@@ -14,11 +14,13 @@
 
 
 
-export * from './apis/activities-api';
-export * from './apis/app-api';
-export * from './apis/auth-api';
-export * from './apis/groups-api';
-export * from './apis/subtasks-api';
-export * from './apis/todo-lists-api';
-export * from './apis/todos-api';
+
+export const TodoStatus = {
+    NUMBER_10: 10,
+    NUMBER_20: 20,
+} as const;
+
+export type TodoStatus = typeof TodoStatus[keyof typeof TodoStatus];
+
+
 

@@ -14,11 +14,14 @@
 
 
 
-export * from './apis/activities-api';
-export * from './apis/app-api';
-export * from './apis/auth-api';
-export * from './apis/groups-api';
-export * from './apis/subtasks-api';
-export * from './apis/todo-lists-api';
-export * from './apis/todos-api';
+
+export const ActivityEntityType = {
+    TodoList: 'TODO_LIST',
+    Todo: 'TODO',
+    Subtask: 'SUBTASK',
+} as const;
+
+export type ActivityEntityType = typeof ActivityEntityType[keyof typeof ActivityEntityType];
+
+
 

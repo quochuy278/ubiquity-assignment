@@ -13,12 +13,14 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { GroupType } from './group-type';
 
-export * from './apis/activities-api';
-export * from './apis/app-api';
-export * from './apis/auth-api';
-export * from './apis/groups-api';
-export * from './apis/subtasks-api';
-export * from './apis/todo-lists-api';
-export * from './apis/todos-api';
+export interface CreateGroupDto {
+    'type': GroupType;
+    'name': string;
+}
+
+
 

@@ -14,11 +14,12 @@
 
 
 
-export * from './apis/activities-api';
-export * from './apis/app-api';
-export * from './apis/auth-api';
-export * from './apis/groups-api';
-export * from './apis/subtasks-api';
-export * from './apis/todo-lists-api';
-export * from './apis/todos-api';
+export interface UserResponseDto {
+    'id': string;
+    'email': string;
+    'displayName': string;
+    'avatarUrl': string | null;
+    'createdAt': string;
+    'updatedAt': string;
+}
 
