@@ -12,4 +12,9 @@ export const ERROR_STATUS_MAP = {
   [ErrorCode.INVALID_REFRESH_TOKEN]: HttpStatus.UNAUTHORIZED,
   [ErrorCode.VALIDATION_ERROR]: HttpStatus.BAD_REQUEST,
   [ErrorCode.INTERNAL_ERROR]: HttpStatus.INTERNAL_SERVER_ERROR,
+  [ErrorCode.NETWORK_ERROR]: HttpStatus.SERVICE_UNAVAILABLE,
+  [ErrorCode.TIMEOUT_ERROR]: HttpStatus.REQUEST_TIMEOUT,
+  [ErrorCode.SERVER_ERROR]: HttpStatus.INTERNAL_SERVER_ERROR,
+  [ErrorCode.SERVICE_UNAVAILABLE]: HttpStatus.SERVICE_UNAVAILABLE,
+  [ErrorCode.UNKNOWN_ERROR]: HttpStatus.INTERNAL_SERVER_ERROR,
 } satisfies Record<ErrorCode, HttpStatus>;
