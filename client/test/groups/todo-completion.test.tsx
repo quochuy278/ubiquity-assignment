@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups';
@@ -12,6 +12,7 @@ import {
 } from '@/api/generated';
 import { queryKeys } from '@/api/query-keys';
 import { TodoListPage } from '@/features/groups';
+import { toast } from '@/shared/components/ui/toast';
 
 const groupId = 'group-1';
 const todoListId = 'list-1';
@@ -102,7 +103,10 @@ async function getTodoCard(title: string) {
 }
 
 describe('todo completion', () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    toast.close();
+    vi.restoreAllMocks();
+  });
 
   it('exposes the completion action for an Active Todo', async () => {
     mockTodoListQuery();
@@ -113,8 +117,8 @@ describe('todo completion', () => {
     renderTodoListPage();
 
     const card = await getTodoCard(activeTodo.title);
-    expect(within(card).getByText('Active')).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Complete' })).toBeInTheDocument();
+    expect(within(card).queryByText('Completed')).not.toBeInTheDocument();
   });
 
   it('completes a Todo, updates its cache entry, and invalidates only its Todo list', async () => {
@@ -128,6 +132,7 @@ describe('todo completion', () => {
       .mockResolvedValue({ data: completedTodo } as never);
     const queryClient = renderTodoListPage();
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+    const addToast = vi.spyOn(toast, 'add');
 
     const card = await getTodoCard(activeTodo.title);
     await user.click(within(card).getByRole('button', { name: 'Complete' }));
@@ -137,7 +142,9 @@ describe('todo completion', () => {
       updateTodoCompletionDto: { completed: true },
     });
     await waitFor(() => expect(within(card).getByText('Completed')).toBeInTheDocument());
-    expect(within(card).getByRole('button', { name: 'Reopen' })).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Reopen' })).not.toBeInTheDocument();
+    expect(addToast).toHaveBeenCalledWith({ title: 'Todo completed', type: 'success' });
     expect(queryClient.getQueryData(queryKeys.todos.forList(todoListId))).toEqual([completedTodo]);
     expect(invalidateQueries).toHaveBeenCalledOnce();
     expect(invalidateQueries).toHaveBeenCalledWith({
@@ -146,27 +153,19 @@ describe('todo completion', () => {
     });
   });
 
-  it('reopens a Completed Todo and renders it as Active', async () => {
-    const user = userEvent.setup();
+  it('renders an accessible completed state without completion or Reopen actions', async () => {
     mockTodoListQuery();
-    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1')
-      .mockResolvedValueOnce({ data: [completedTodo] } as never)
-      .mockResolvedValue({ data: [activeTodo] } as never);
-    const updateCompletion = vi
-      .spyOn(todosApi, 'todoControllerUpdateCompletionV1')
-      .mockResolvedValue({ data: activeTodo } as never);
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1').mockResolvedValue({
+      data: [completedTodo],
+    } as never);
+    const updateCompletion = vi.spyOn(todosApi, 'todoControllerUpdateCompletionV1');
     renderTodoListPage();
 
     const card = await getTodoCard(completedTodo.title);
-    expect(within(card).getByRole('button', { name: 'Reopen' })).toBeInTheDocument();
-    await user.click(within(card).getByRole('button', { name: 'Reopen' }));
-
-    expect(updateCompletion).toHaveBeenCalledWith({
-      todoId: completedTodo.id,
-      updateTodoCompletionDto: { completed: false },
-    });
-    await waitFor(() => expect(within(card).getByText('Active')).toBeInTheDocument());
-    expect(within(card).getByRole('button', { name: 'Complete' })).toBeInTheDocument();
+    expect(within(card).getByText('Completed')).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: 'Reopen' })).not.toBeInTheDocument();
+    expect(updateCompletion).not.toHaveBeenCalled();
   });
 
   it('preserves confirmed state and presents an error when the mutation fails', async () => {
@@ -180,21 +179,26 @@ describe('todo completion', () => {
     );
     const queryClient = renderTodoListPage();
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+    const addToast = vi.spyOn(toast, 'add');
 
     const card = await getTodoCard(activeTodo.title);
     await user.click(within(card).getByRole('button', { name: 'Complete' }));
 
-    expect(
-      await within(card).findByText('Something went wrong. Please try again.'),
-    ).toBeInTheDocument();
-    expect(within(card).getByText('Active')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith({
+        title: 'Something went wrong. Please try again.',
+        type: 'error',
+        priority: 'high',
+      }),
+    );
+    expect(within(card).queryByText('Completed')).not.toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Complete' })).toBeInTheDocument();
+    expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
     expect(queryClient.getQueryData(queryKeys.todos.forList(todoListId))).toEqual([activeTodo]);
     expect(invalidateQueries).not.toHaveBeenCalled();
   });
 
   it('disables duplicate interaction only for the Todo being updated', async () => {
-    const user = userEvent.setup();
     let resolveUpdate: (value: { data: TodoResponseDto }) => void = () => undefined;
     mockTodoListQuery();
     vi.spyOn(todosApi, 'todoControllerFindForTodoListV1')
@@ -212,17 +216,20 @@ describe('todo completion', () => {
 
     const firstCard = await getTodoCard(activeTodo.title);
     const secondCard = await getTodoCard(secondActiveTodo.title);
-    await user.click(within(firstCard).getByRole('button', { name: 'Complete' }));
+    const completeButton = within(firstCard).getByRole('button', { name: 'Complete' });
+    act(() => {
+      completeButton.click();
+      completeButton.click();
+    });
 
     const pendingButton = within(firstCard).getByRole('button', { name: 'Completing...' });
     expect(pendingButton).toBeDisabled();
     expect(within(secondCard).getByRole('button', { name: 'Complete' })).toBeEnabled();
-    await user.click(pendingButton);
-    expect(updateCompletion).toHaveBeenCalledOnce();
+    await waitFor(() => expect(updateCompletion).toHaveBeenCalledOnce());
 
     resolveUpdate({ data: completedTodo });
-    await waitFor(() =>
-      expect(within(firstCard).getByRole('button', { name: 'Reopen' })).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(within(firstCard).getByText('Completed')).toBeInTheDocument());
+    expect(within(firstCard).queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument();
+    expect(within(firstCard).queryByRole('button', { name: 'Reopen' })).not.toBeInTheDocument();
   });
 });
