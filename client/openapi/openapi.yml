@@ -1144,6 +1144,11 @@ components:
         - INVALID_REFRESH_TOKEN
         - VALIDATION_ERROR
         - INTERNAL_ERROR
+        - NETWORK_ERROR
+        - TIMEOUT_ERROR
+        - SERVER_ERROR
+        - SERVICE_UNAVAILABLE
+        - UNKNOWN_ERROR
     ErrorResponseDto:
       type: object
       properties:
