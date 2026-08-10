@@ -1,14 +1,16 @@
 import axios from 'axios';
-import { authTokenStore } from '@/api/auth-tokens';
-import { AuthApi, Configuration, GroupsApi, TodoListsApi, TodosApi } from '@/api/generated';
+import { authTokenStore } from '@/api/auth/tokens';
+import { AuthApi, Configuration } from '@/api/generated';
 import { createAuthenticatedHttpClient } from '@/api/http-client';
 import { queryClient } from '@/api/query-client';
 import { queryKeys } from '@/api/query-keys';
 import { configuration } from '@/config/configuration';
 
-const generatedConfiguration = new Configuration({ basePath: configuration.api.baseUrl });
+export const generatedApiConfiguration = new Configuration({
+  basePath: configuration.api.baseUrl,
+});
 const refreshApi = new AuthApi(
-  generatedConfiguration,
+  generatedApiConfiguration,
   undefined,
   axios.create({
     baseURL: configuration.api.baseUrl,
@@ -16,7 +18,7 @@ const refreshApi = new AuthApi(
   }),
 );
 
-const httpClient = createAuthenticatedHttpClient({
+export const httpClient = createAuthenticatedHttpClient({
   baseUrl: configuration.api.baseUrl,
   tokens: authTokenStore,
   refresh: async (refreshToken) => {
@@ -31,8 +33,3 @@ const httpClient = createAuthenticatedHttpClient({
     queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
   },
 });
-
-export const authApi = new AuthApi(generatedConfiguration, undefined, httpClient);
-export const groupsApi = new GroupsApi(generatedConfiguration, undefined, httpClient);
-export const todoListsApi = new TodoListsApi(generatedConfiguration, undefined, httpClient);
-export const todosApi = new TodosApi(generatedConfiguration, undefined, httpClient);

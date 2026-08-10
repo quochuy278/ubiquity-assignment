@@ -4,7 +4,7 @@ import axios, {
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import type { AuthTokenStore } from '@/api/auth-tokens';
+import type { AuthTokenStore } from '@/api/auth/tokens';
 import { normalizeApiError } from '@/api/errors';
 import type { AuthResponseDto } from '@/api/generated';
 
