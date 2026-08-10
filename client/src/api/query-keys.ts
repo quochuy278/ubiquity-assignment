@@ -1,0 +1,16 @@
+export const queryKeys = {
+  auth: {
+    me: ['auth', 'me'] as const,
+  },
+  groups: {
+    all: ['groups'] as const,
+    detail: (groupId: string) => ['groups', groupId] as const,
+  },
+  todoLists: {
+    forGroup: (groupId: string) => ['groups', groupId, 'todo-lists'] as const,
+    detail: (todoListId: string) => ['todo-lists', todoListId] as const,
+  },
+  todos: {
+    forList: (todoListId: string) => ['todo-lists', todoListId, 'todos'] as const,
+  },
+};
