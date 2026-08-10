@@ -9,4 +9,7 @@ export default (): ClientConfig => ({
     baseUrl: import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:3000',
     timeoutMs: getApiTimeoutMs(import.meta.env.VITE_API_TIMEOUT_MS),
   },
+  realtime: {
+    ablyKey: import.meta.env.ABLY_KEY?.trim() || null,
+  },
 });

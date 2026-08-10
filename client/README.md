@@ -11,6 +11,7 @@ product overview and assignment story status.
 - Vite 8
 - React Router 7
 - TanStack Query 5
+- Ably JavaScript SDK and React provider
 - Zustand 5 (vanilla token store with persistence middleware)
 - Axios
 - Tailwind CSS 4
@@ -56,8 +57,11 @@ The checked-in template is [`.env.example`](.env.example).
 | --- | --- | --- | --- |
 | `VITE_API_BASE_URL` | Production: yes; development: no | Base URL used by Axios and the generated APIs. Development falls back to `http://localhost:3000`. | `http://localhost:3000` |
 | `VITE_API_TIMEOUT_MS` | No | Positive integer request timeout in milliseconds. Defaults to `10000`. | `10000` |
+| `ABLY_KEY` | Required for realtime | Browser credential used only to subscribe to TodoList channels. This assignment expects its Ably capability to be subscribe-only. | `app.key:replace-me` |
 
-Vite embeds these values in the browser bundle. They must not contain secrets.
+Vite exposes both `VITE_*` variables and `ABLY_*` variables to the browser bundle. `ABLY_KEY` is an
+intentional assignment simplification and must use a key whose Ably-side capability is
+subscribe-only. Never hardcode or log its actual value.
 
 ## Frontend Architecture
 
@@ -298,6 +302,37 @@ The frontend never calculates or sends raw rank values. Persisted ordering belon
 A synchronous ref lock plus mutation pending state prevents another reorder for the same rendered
 Todo List while one is in progress, without disabling completion or Subtask actions.
 
+## Realtime Group and TodoList Synchronization
+
+Realtime is a progressive enhancement for Group and TodoList pages when the Group has type
+`SHARED`. A single application-level `AblyProvider` owns the shared realtime client. A missing or
+invalid client configuration leaves the normal REST-driven application available.
+
+The Group page subscribes to `group:{groupId}` for TodoList creation. The TodoList page subscribes
+to `todo-list:{todoListId}` for Todo and Subtask changes. Both features open a scoped
+`ChannelProvider` only for `SHARED` Groups; `PERSONAL` Groups never attach a channel. Each server
+event has an explicit `useChannel(channelName, eventName, handler)` subscription; Ably's React hooks
+own subscription and channel lifecycle cleanup when the channel changes or unmounts. Presentation
+components do not use Ably directly and the frontend never publishes messages.
+
+Server messages are invalidation signals, not replicated state:
+
+| Event | Exact TanStack Query invalidation |
+| --- | --- |
+| `TODO_LIST_CREATED` | `queryKeys.todoLists.forGroup(groupId)` |
+| `TODO_CREATED` | `queryKeys.todos.forList(todoListId)` |
+| `TODO_COMPLETION_CHANGED` | `queryKeys.todos.forList(todoListId)` |
+| `TODO_REORDERED` | `queryKeys.todos.forList(todoListId)` |
+| `SUBTASK_CREATED` | `queryKeys.subtasks.forTodo(todoId)` |
+| `SUBTASK_COMPLETION_CHANGED` | `queryKeys.subtasks.forTodo(todoId)` |
+
+The subsequent REST refetch remains authoritative for Todo ordering, completion, Subtasks, and
+derived progress. TodoList, Todo, and Subtask collection queries always refetch when their feature
+mounts, closing the gap for events emitted while that channel was not subscribed. Connection state
+changes also invalidate the current list's Todos and the Subtask queries for currently rendered
+Todos. Realtime connection or subscription failures do not clear query data, block mutations, or
+replace the page with an error state.
+
 ## Error Handling
 
 Axios failures are normalized into `ApiClientError`, preserving known backend error codes,
@@ -327,6 +362,8 @@ behavior rather than implementation details, including:
 - shared rapid-action and native form-submit locks;
 - Todo reorder intent, keyboard parity, optimistic order, rollback, feedback, scoped invalidation,
   and pending protection.
+- application-level Ably provider ownership, SHARED/PERSONAL channel eligibility, named event
+  subscriptions, event-to-query invalidation, and reconnect convergence without the Ably network.
 
 Run the suite with:
 
@@ -340,6 +377,7 @@ testing dnd-kit's internals.
 ## Build Notes / Known Trade-offs
 
 - The application is online and server-authoritative; it has no offline mutation queue.
+- Realtime is limited to Todo and Subtask invalidation for the currently viewed SHARED TodoList.
 - Subtask loading currently uses one request per visible Todo.
 - Drag-and-drop is Todo-only and list-local.
 - Refresh-token persistence assumes one active account per browser profile.

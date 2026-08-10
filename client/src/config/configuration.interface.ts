@@ -8,4 +8,7 @@ export interface ClientConfig {
     baseUrl: string;
     timeoutMs: number;
   };
+  realtime: {
+    ablyKey: string | null;
+  };
 }

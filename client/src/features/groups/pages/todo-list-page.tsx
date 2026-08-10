@@ -4,6 +4,7 @@ import { GroupBreadcrumbs } from '@/features/groups/components/group-breadcrumbs
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { SortableTodoList } from '@/features/groups/components/sortable-todo-list';
 import { useGroup, useTodoList, useTodos } from '@/features/groups/hooks';
+import { TodoListRealtime } from '@/realtime/todo-list-realtime';
 import { ApiError } from '@/shared/components/api-error';
 import { EmptyState } from '@/shared/components/empty-state';
 import { PageLoading } from '@/shared/components/page-loading';
@@ -27,28 +28,34 @@ export function TodoListPage() {
   if (todos.isError) return <ApiError error={todos.error} onRetry={() => todos.refetch()} />;
 
   return (
-    <div className="space-y-4">
-      <GroupBreadcrumbs
-        groupId={groupId}
-        groupName={group.data.name}
-        todoListName={list.data.name}
-      />
-      <GroupPageSection title={list.data.name} description="Todos in this list.">
-        {todos.data.length === 0 ? (
-          <EmptyState
-            title="No todos"
-            description="Create a todo to start tracking work in this list."
-            action={<CreateTodoDialog todoListId={todoListId} />}
-          />
-        ) : (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <CreateTodoDialog todoListId={todoListId} />
+    <TodoListRealtime
+      groupType={group.data.type}
+      todoIds={todos.data.map((todo) => todo.id)}
+      todoListId={todoListId}
+    >
+      <div className="space-y-4">
+        <GroupBreadcrumbs
+          groupId={groupId}
+          groupName={group.data.name}
+          todoListName={list.data.name}
+        />
+        <GroupPageSection title={list.data.name} description="Todos in this list.">
+          {todos.data.length === 0 ? (
+            <EmptyState
+              title="No todos"
+              description="Create a todo to start tracking work in this list."
+              action={<CreateTodoDialog todoListId={todoListId} />}
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <CreateTodoDialog todoListId={todoListId} />
+              </div>
+              <SortableTodoList todos={todos.data} todoListId={todoListId} />
             </div>
-            <SortableTodoList todos={todos.data} todoListId={todoListId} />
-          </div>
-        )}
-      </GroupPageSection>
-    </div>
+          )}
+        </GroupPageSection>
+      </div>
+    </TodoListRealtime>
   );
 }

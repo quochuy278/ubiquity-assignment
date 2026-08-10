@@ -4,6 +4,7 @@ import { CreateTodoListDialog } from '@/features/groups/components/create-todo-l
 import { GroupBreadcrumbs } from '@/features/groups/components/group-breadcrumbs';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { useGroup, useTodoLists } from '@/features/groups/hooks';
+import { GroupRealtime } from '@/realtime/group-realtime';
 import { ApiError } from '@/shared/components/api-error';
 import { EmptyState } from '@/shared/components/empty-state';
 import { PageLoading } from '@/shared/components/page-loading';
@@ -19,39 +20,41 @@ export function GroupPage() {
   if (lists.isError) return <ApiError error={lists.error} onRetry={() => lists.refetch()} />;
 
   return (
-    <div className="space-y-4">
-      <GroupBreadcrumbs groupId={groupId} groupName={group.data.name} />
-      <GroupPageSection title={group.data.name} description="Todo lists in this group.">
-        {lists.data.length === 0 ? (
-          <EmptyState
-            title="No todo lists"
-            description="Create a list to start organizing todos."
-            action={<CreateTodoListDialog groupId={groupId} />}
-          />
-        ) : (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <CreateTodoListDialog groupId={groupId} />
+    <GroupRealtime groupId={groupId} groupType={group.data.type}>
+      <div className="space-y-4">
+        <GroupBreadcrumbs groupId={groupId} groupName={group.data.name} />
+        <GroupPageSection title={group.data.name} description="Todo lists in this group.">
+          {lists.data.length === 0 ? (
+            <EmptyState
+              title="No todo lists"
+              description="Create a list to start organizing todos."
+              action={<CreateTodoListDialog groupId={groupId} />}
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <CreateTodoListDialog groupId={groupId} />
+              </div>
+              <div className="space-y-3">
+                {lists.data.map((list) => (
+                  <Link key={list.id} to={`/groups/${groupId}/lists/${list.id}`}>
+                    <Card className="mb-3 transition-colors hover:bg-muted/40">
+                      <CardContent className="flex items-center gap-3">
+                        <ListTodoIcon className="size-5 text-muted-foreground" aria-hidden="true" />
+                        <span className="flex-1 font-medium">{list.name}</span>
+                        <ChevronRightIcon
+                          className="size-4 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="space-y-3">
-              {lists.data.map((list) => (
-                <Link key={list.id} to={`/groups/${groupId}/lists/${list.id}`}>
-                  <Card className="mb-3 transition-colors hover:bg-muted/40">
-                    <CardContent className="flex items-center gap-3">
-                      <ListTodoIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-                      <span className="flex-1 font-medium">{list.name}</span>
-                      <ChevronRightIcon
-                        className="size-4 text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-      </GroupPageSection>
-    </div>
+          )}
+        </GroupPageSection>
+      </div>
+    </GroupRealtime>
   );
 }

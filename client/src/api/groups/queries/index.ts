@@ -60,6 +60,7 @@ export function useGroupQuery(groupId: string) {
 export function useTodoListsQuery(groupId: string) {
   return useQuery({
     queryKey: queryKeys.todoLists.forGroup(groupId),
+    refetchOnMount: 'always',
     queryFn: async () => {
       const response = await todoListsApi.todoListControllerFindForGroupV1({ groupId });
 
@@ -111,6 +112,7 @@ export function useTodoListQuery(todoListId: string) {
 export function useTodosQuery(todoListId: string) {
   return useQuery({
     queryKey: queryKeys.todos.forList(todoListId),
+    refetchOnMount: 'always',
     queryFn: async () => {
       const response = await todosApi.todoControllerFindForTodoListV1({ todoListId });
 
@@ -213,6 +215,7 @@ export function useReorderTodoMutation(todoListId: string) {
 export function useSubtasksQuery(todoId: string) {
   return useQuery({
     queryKey: queryKeys.subtasks.forTodo(todoId),
+    refetchOnMount: 'always',
     queryFn: async () => {
       const response = await subtasksApi.subTaskControllerFindForTodoV1({ todoId });
 

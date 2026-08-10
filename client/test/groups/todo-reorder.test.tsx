@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { todosApi, subtasksApi } from '@/api/groups';
+import { type TodoResponseDto, TodoStatus } from '@/api/generated';
+import { subtasksApi, todosApi } from '@/api/groups';
 import { useTodosQuery } from '@/api/groups/queries';
-import { TodoStatus, type TodoResponseDto } from '@/api/generated';
 import { queryKeys } from '@/api/query-keys';
 import { SortableTodoList } from '@/features/groups/components/sortable-todo-list';
 import { toast } from '@/shared/components/ui/toast';
@@ -122,6 +122,8 @@ describe('Todo drag-and-drop ordering', () => {
         }) as never,
     );
     const queryClient = renderTodoList();
+    await waitFor(() => expect(findTodos).toHaveBeenCalledOnce());
+    findTodos.mockClear();
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
     const unrelatedBefore = queryClient.getQueryData(queryKeys.todos.forList('unrelated-list'));
 
