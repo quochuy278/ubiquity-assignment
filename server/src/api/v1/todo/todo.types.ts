@@ -22,6 +22,12 @@ export interface TodoDeletionTransitionResult {
   transitioned: boolean;
 }
 
+export type TodoReorderTransitionResult =
+  | { kind: 'notFound' }
+  | { kind: 'invalidAnchor' }
+  | { kind: 'noOp'; todo: TodoResult }
+  | { kind: 'reordered'; todo: TodoResult };
+
 export type TodoResult = Todo;
 
 export interface TodoAccessResult {

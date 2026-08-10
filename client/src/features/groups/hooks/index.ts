@@ -5,6 +5,7 @@ import {
   useCreateTodoListMutation,
   useGroupQuery,
   useGroupsQuery,
+  useReorderTodoMutation,
   useSubtasksQuery,
   useTodoListQuery,
   useTodoListsQuery,
@@ -35,6 +36,10 @@ export function useUpdateSubtaskCompletion(todoId: string) {
 
 export function useUpdateTodoCompletion(todoListId: string) {
   return useUpdateTodoCompletionMutation(todoListId);
+}
+
+export function useReorderTodo(todoListId: string) {
+  return useReorderTodoMutation(todoListId);
 }
 
 export function useGroups() {

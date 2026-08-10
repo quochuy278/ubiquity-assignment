@@ -16,6 +16,7 @@ import { Session } from '../../../shared/session/session.decorator';
 import type { SessionContext } from '../../../shared/session/session.types';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CreateTodoDto } from './dto/create-todo.dto';
+import { ReorderTodoDto } from './dto/reorder-todo.dto';
 import { TodoResponseDto } from './dto/todo-response.dto';
 import { UpdateTodoCompletionDto } from './dto/update-todo-completion.dto';
 import { TodoService } from './todo.service';
@@ -141,6 +142,35 @@ export class TodoController {
     return mapTodoResponse(todo);
   }
 
+  @Patch('todos/:todoId/reorder')
+  @ApiEndpoint({
+    operation: { summary: 'Reorder a todo within its todo list' },
+    params: [{ name: 'todoId', type: String, description: 'Todo ID' }],
+    body: { type: ReorderTodoDto, required: true },
+    response: {
+      status: HttpStatus.OK,
+      description: 'The todo was reordered successfully',
+      type: TodoResponseDto,
+    },
+    responses: [
+      {
+        status: HttpStatus.UNAUTHORIZED,
+        description: 'The access token is missing or invalid',
+        type: ErrorResponseDto,
+      },
+    ],
+    notFound: { description: 'The todo or reorder anchor was not found' },
+  })
+  async reorder(
+    @Session() session: SessionContext,
+    @Param('todoId') todoId: string,
+    @Body() input: ReorderTodoDto,
+  ): Promise<TodoResponseDto> {
+    const todo = await this.todos.reorder(session.userId, todoId, input);
+
+    return mapTodoResponse(todo);
+  }
+
   @Delete('todos/:todoId')
   @ApiEndpoint({
     operation: { summary: 'Delete a todo' },
@@ -163,6 +193,8 @@ export class TodoController {
     @Session() session: SessionContext,
     @Param('todoId') todoId: string,
   ): Promise<TodoResponseDto> {
-    return mapTodoResponse(await this.todos.delete(session.userId, todoId));
+    const todo = await this.todos.delete(session.userId, todoId);
+
+    return mapTodoResponse(todo);
   }
 }

@@ -33,6 +33,7 @@ describe('Todo use-case behavior and authorization', () => {
   const findByTodoListId = jest.fn();
   const findTodoById = jest.fn();
   const updateCompletion = jest.fn();
+  const reorderTodo = jest.fn();
   const softDelete = jest.fn();
   const recordActivity = jest.fn();
   const transactionClient = { activityEvent: {}, todo: {} };
@@ -47,6 +48,7 @@ describe('Todo use-case behavior and authorization', () => {
     findByTodoListId,
     findById: findTodoById,
     updateCompletion,
+    reorder: reorderTodo,
     softDelete,
   } as unknown as TodoRepository;
   const prisma = { $transaction: runTransaction } as unknown as PrismaService;
@@ -267,6 +269,85 @@ describe('Todo use-case behavior and authorization', () => {
     ).rejects.toMatchObject({ code: ErrorCode.TASK_NOT_FOUND });
 
     expect(updateCompletion).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('reorders an accessible todo and records one activity in the transaction', async () => {
+    const reorderedTodo = { ...todo, rank: new Prisma.Decimal(1500), updatedById: 'user-1' };
+    findTodoById.mockResolvedValue(todo);
+    reorderTodo.mockResolvedValue({ kind: 'reordered', todo: reorderedTodo });
+
+    await expect(service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-2' })).resolves.toBe(
+      reorderedTodo,
+    );
+
+    expect(reorderTodo).toHaveBeenCalledWith(
+      'todo-1',
+      'list-1',
+      'todo-2',
+      'user-1',
+      transactionClient,
+    );
+    expect(recordActivity).toHaveBeenCalledWith(
+      {
+        groupId: 'group-1',
+        actorId: 'user-1',
+        type: 'TODO_REORDERED',
+        entityType: 'TODO',
+        entityId: 'todo-1',
+      },
+      transactionClient,
+    );
+  });
+
+  it('returns a no-op reorder without activity or mutation logging', async () => {
+    findTodoById.mockResolvedValue(todo);
+    reorderTodo.mockResolvedValue({ kind: 'noOp', todo });
+
+    await expect(service.reorder('user-1', 'todo-1', { beforeTodoId: null })).resolves.toBe(todo);
+
+    expect(recordActivity).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('rejects self and cross-list reorder anchors without recording activity', async () => {
+    await expect(
+      service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-1' }),
+    ).rejects.toMatchObject({ code: ErrorCode.VALIDATION_ERROR });
+    expect(findTodoById).not.toHaveBeenCalled();
+
+    findTodoById.mockResolvedValue(todo);
+    reorderTodo.mockResolvedValue({ kind: 'invalidAnchor' });
+    await expect(
+      service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-from-another-list' }),
+    ).rejects.toMatchObject({ code: ErrorCode.TASK_NOT_FOUND });
+    expect(recordActivity).not.toHaveBeenCalled();
+  });
+
+  it('does not reorder an inaccessible todo', async () => {
+    findTodoById.mockResolvedValue(todo);
+    findTodoListById.mockRejectedValue(
+      new GlobalException(ErrorCode.TODO_LIST_NOT_FOUND, {
+        todoListId: 'list-1',
+        userId: 'user-2',
+      }),
+    );
+
+    await expect(service.reorder('user-2', 'todo-1', { beforeTodoId: null })).rejects.toMatchObject(
+      { code: ErrorCode.TASK_NOT_FOUND },
+    );
+    expect(reorderTodo).not.toHaveBeenCalled();
+  });
+
+  it('propagates activity failure from the same reorder transaction', async () => {
+    const reorderedTodo = { ...todo, rank: new Prisma.Decimal(1500) };
+    findTodoById.mockResolvedValue(todo);
+    reorderTodo.mockResolvedValue({ kind: 'reordered', todo: reorderedTodo });
+    recordActivity.mockRejectedValue(new Error('activity write failed'));
+
+    await expect(service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-2' })).rejects.toThrow(
+      'activity write failed',
+    );
     expect(log).not.toHaveBeenCalled();
   });
 

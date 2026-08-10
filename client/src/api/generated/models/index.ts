@@ -15,6 +15,7 @@ export * from './group-type';
 export * from './login-request-dto';
 export * from './refresh-request-dto';
 export * from './register-request-dto';
+export * from './reorder-todo-dto';
 export * from './sub-task-response-dto';
 export * from './todo-list-response-dto';
 export * from './todo-response-dto';

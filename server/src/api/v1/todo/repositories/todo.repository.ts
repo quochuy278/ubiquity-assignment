@@ -5,11 +5,14 @@ import type {
   CreateTodoInput,
   TodoCompletionTransitionResult,
   TodoDeletionTransitionResult,
+  TodoReorderTransitionResult,
   TodoResult,
   UpdateTodoCompletionInput,
 } from '../todo.types';
 
 const TODO_RANK_STEP = 1000;
+const TODO_RANK_SCALE = 10;
+const TODO_MAX_RANK = new Prisma.Decimal('9999999999.9999999999');
 
 @Injectable()
 export class TodoRepository {
@@ -71,6 +74,53 @@ export class TodoRepository {
     return this.prisma.todo.findFirst({ where: { id: todoId, deletedAt: null } });
   }
 
+  async reorder(
+    todoId: string,
+    todoListId: string,
+    beforeTodoId: string | null,
+    updatedById: string,
+    transaction: Prisma.TransactionClient,
+  ): Promise<TodoReorderTransitionResult> {
+    const orderedTodos = await transaction.todo.findMany({
+      where: { todoListId, deletedAt: null },
+      orderBy: [{ rank: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const movedTodo = orderedTodos.find((todo) => todo.id === todoId);
+    if (!movedTodo) return { kind: 'notFound' };
+
+    const remainingTodos = orderedTodos.filter((todo) => todo.id !== todoId);
+    const insertionIndex =
+      beforeTodoId === null
+        ? remainingTodos.length
+        : remainingTodos.findIndex((todo) => todo.id === beforeTodoId);
+    if (insertionIndex < 0) return { kind: 'invalidAnchor' };
+
+    const reorderedTodos = [...remainingTodos];
+    reorderedTodos.splice(insertionIndex, 0, movedTodo);
+    if (reorderedTodos.every((todo, index) => todo.id === orderedTodos[index]?.id)) {
+      return { kind: 'noOp', todo: movedTodo };
+    }
+
+    const previousTodo = reorderedTodos[insertionIndex - 1];
+    const nextTodo = reorderedTodos[insertionIndex + 1];
+    const rank = this.calculateRank(previousTodo?.rank, nextTodo?.rank);
+
+    if (!rank) {
+      return this.rebalance(reorderedTodos, todoId, updatedById, transaction);
+    }
+
+    const update = await transaction.todo.updateMany({
+      where: { id: todoId, todoListId, deletedAt: null },
+      data: { rank, updatedById },
+    });
+    if (update.count !== 1) return { kind: 'notFound' };
+
+    const todo = await transaction.todo.findFirst({
+      where: { id: todoId, todoListId, deletedAt: null },
+    });
+    return todo ? { kind: 'reordered', todo } : { kind: 'notFound' };
+  }
+
   async updateCompletion(
     todoId: string,
     input: UpdateTodoCompletionInput,
@@ -98,5 +148,51 @@ export class TodoRepository {
       update.count === 1 ? await transaction.todo.findUnique({ where: { id: todoId } }) : null;
 
     return { todo, transitioned: update.count === 1 };
+  }
+
+  private calculateRank(
+    previousRank: Prisma.Decimal | undefined,
+    nextRank: Prisma.Decimal | undefined,
+  ): Prisma.Decimal | null {
+    if (!previousRank && !nextRank) return null;
+
+    const rank = previousRank
+      ? nextRank
+        ? previousRank.add(nextRank).div(2)
+        : previousRank.add(TODO_RANK_STEP)
+      : nextRank?.sub(TODO_RANK_STEP);
+    if (!rank) return null;
+
+    const persistedRank = rank.toDecimalPlaces(TODO_RANK_SCALE);
+    const isStrictlyAfterPrevious = !previousRank || persistedRank.comparedTo(previousRank) > 0;
+    const isStrictlyBeforeNext = !nextRank || persistedRank.comparedTo(nextRank) < 0;
+    const isWithinDatabaseRange = persistedRank.abs().comparedTo(TODO_MAX_RANK) <= 0;
+
+    return isStrictlyAfterPrevious && isStrictlyBeforeNext && isWithinDatabaseRange
+      ? persistedRank
+      : null;
+  }
+
+  private async rebalance(
+    reorderedTodos: TodoResult[],
+    movedTodoId: string,
+    updatedById: string,
+    transaction: Prisma.TransactionClient,
+  ): Promise<TodoReorderTransitionResult> {
+    for (const [index, todo] of reorderedTodos.entries()) {
+      const update = await transaction.todo.updateMany({
+        where: { id: todo.id, todoListId: todo.todoListId, deletedAt: null },
+        data: {
+          rank: new Prisma.Decimal((index + 1) * TODO_RANK_STEP),
+          ...(todo.id === movedTodoId ? { updatedById } : {}),
+        },
+      });
+      if (update.count !== 1) return { kind: 'notFound' };
+    }
+
+    const todo = await transaction.todo.findFirst({
+      where: { id: movedTodoId, deletedAt: null },
+    });
+    return todo ? { kind: 'reordered', todo } : { kind: 'notFound' };
   }
 }
