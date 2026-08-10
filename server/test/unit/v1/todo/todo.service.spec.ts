@@ -26,12 +26,14 @@ describe('Todo use-case behavior and authorization', () => {
     updatedById: null,
     createdAt: dayjs('2026-08-07T10:00:00.000Z').toDate(),
     updatedAt: dayjs('2026-08-07T10:00:00.000Z').toDate(),
+    deletedAt: null,
   };
   const findTodoListById = jest.fn();
   const createTodo = jest.fn();
   const findByTodoListId = jest.fn();
   const findTodoById = jest.fn();
   const updateCompletion = jest.fn();
+  const softDelete = jest.fn();
   const recordActivity = jest.fn();
   const transactionClient = { activityEvent: {}, todo: {} };
   const runTransaction = jest.fn(
@@ -45,6 +47,7 @@ describe('Todo use-case behavior and authorization', () => {
     findByTodoListId,
     findById: findTodoById,
     updateCompletion,
+    softDelete,
   } as unknown as TodoRepository;
   const prisma = { $transaction: runTransaction } as unknown as PrismaService;
   const activities = { record: recordActivity } as unknown as ActivityService;
@@ -265,5 +268,35 @@ describe('Todo use-case behavior and authorization', () => {
 
     expect(updateCompletion).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
+  });
+
+  it('soft deletes an accessible todo and records one activity in the transaction', async () => {
+    const deletedTodo = { ...todo, deletedAt: dayjs('2026-08-10T10:00:00.000Z').toDate() };
+    findTodoById.mockResolvedValue(todo);
+    softDelete.mockResolvedValue({ todo: deletedTodo, transitioned: true });
+
+    await expect(service.delete('user-1', 'todo-1')).resolves.toBe(deletedTodo);
+
+    expect(softDelete).toHaveBeenCalledWith('todo-1', expect.any(Date), transactionClient);
+    expect(recordActivity).toHaveBeenCalledWith(
+      {
+        groupId: 'group-1',
+        actorId: 'user-1',
+        type: 'TODO_DELETED',
+        entityType: 'TODO',
+        entityId: 'todo-1',
+      },
+      transactionClient,
+    );
+  });
+
+  it('treats a lost todo deletion race as not found without recording activity', async () => {
+    findTodoById.mockResolvedValue(todo);
+    softDelete.mockResolvedValue({ todo: null, transitioned: false });
+
+    await expect(service.delete('user-1', 'todo-1')).rejects.toMatchObject({
+      code: ErrorCode.TASK_NOT_FOUND,
+    });
+    expect(recordActivity).not.toHaveBeenCalled();
   });
 });

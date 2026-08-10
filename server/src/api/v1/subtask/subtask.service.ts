@@ -3,6 +3,7 @@ import { ErrorCode } from '../../../common/exception/error-code';
 import { GlobalException } from '../../../common/exception/global.exception';
 import { ApplicationLoggerService } from '../../../common/logger/logger.service';
 import { PrismaService } from '../../../shared/database/prisma/prisma.service';
+import { now } from '../../../shared/utils/time.utilities';
 import { ActivityEntityType, ActivityType } from '../activity/activity.constants';
 import { ActivityService } from '../activity/activity.service';
 import { TodoService } from '../todo/todo.service';
@@ -68,6 +69,9 @@ export class SubTaskService {
         input.completed,
         transaction,
       );
+      if (!transition.subtask) {
+        throw this.notFound(subtaskId, userId);
+      }
       if (transition.transitioned) {
         await this.activities.record(
           {
@@ -91,6 +95,34 @@ export class SubTaskService {
       SubTaskService.name,
     );
     return updatedSubTask;
+  }
+
+  async delete(userId: string, subtaskId: string): Promise<SubTaskResult> {
+    const { subtask, groupId } = await this.findAccessibleSubTask(userId, subtaskId);
+    const deletedSubTask = await this.prisma.$transaction(async (transaction) => {
+      const transition = await this.subtasks.softDelete(subtask.id, now().toDate(), transaction);
+      if (!transition.transitioned || !transition.subtask) {
+        throw this.notFound(subtaskId, userId);
+      }
+      await this.activities.record(
+        {
+          groupId,
+          actorId: userId,
+          type: ActivityType.SUBTASK_DELETED,
+          entityType: ActivityEntityType.SUBTASK,
+          entityId: subtask.id,
+        },
+        transaction,
+      );
+      return transition.subtask;
+    });
+
+    this.logger.log(
+      'Subtask deleted',
+      { subtaskId, todoId: subtask.todoId, userId },
+      SubTaskService.name,
+    );
+    return deletedSubTask;
   }
 
   private async findAccessibleSubTask(

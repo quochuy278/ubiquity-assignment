@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiEndpoint } from '../../../shared/openapi/api-endpoint.decorator';
 import { ErrorResponseDto } from '../../../shared/openapi/dto/error-response.dto';
@@ -124,5 +134,30 @@ export class SubTaskController {
     return mapSubTaskResponse(
       await this.subtasks.updateCompletion(session.userId, subtaskId, input),
     );
+  }
+
+  @Delete('subtasks/:subtaskId')
+  @ApiEndpoint({
+    operation: { summary: 'Delete a subtask' },
+    params: [{ name: 'subtaskId', type: String, description: 'Subtask ID' }],
+    response: {
+      status: HttpStatus.OK,
+      description: 'The subtask was deleted successfully',
+      type: SubTaskResponseDto,
+    },
+    responses: [
+      {
+        status: HttpStatus.UNAUTHORIZED,
+        description: 'The access token is missing or invalid',
+        type: ErrorResponseDto,
+      },
+    ],
+    notFound: { description: 'The subtask was not found' },
+  })
+  async delete(
+    @Session() session: SessionContext,
+    @Param('subtaskId') subtaskId: string,
+  ): Promise<SubTaskResponseDto> {
+    return mapSubTaskResponse(await this.subtasks.delete(session.userId, subtaskId));
   }
 }

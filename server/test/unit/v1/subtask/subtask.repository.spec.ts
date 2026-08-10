@@ -7,9 +7,9 @@ describe('Subtask persistence', () => {
   const create = jest.fn();
   const findMany = jest.fn();
   const updateMany = jest.fn();
-  const findUniqueOrThrow = jest.fn();
-  const transaction = { subTask: { findFirst, create, updateMany, findUniqueOrThrow } };
-  const prisma = { subTask: { findMany } } as unknown as PrismaService;
+  const findUnique = jest.fn();
+  const transaction = { subTask: { findFirst, create, updateMany, findUnique } };
+  const prisma = { subTask: { findMany, findFirst } } as unknown as PrismaService;
   const repository = new SubTaskRepository(prisma);
 
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe('Subtask persistence', () => {
 
     await expect(repository.findByTodoId('todo-1')).resolves.toEqual([]);
     expect(findMany).toHaveBeenCalledWith({
-      where: { todoId: 'todo-1' },
+      where: { todoId: 'todo-1', deletedAt: null },
       orderBy: [{ rank: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
   });
@@ -52,7 +52,7 @@ describe('Subtask persistence', () => {
     async (count, transitioned) => {
       const subtask = { id: 'subtask-1', completed: true };
       updateMany.mockResolvedValue({ count });
-      findUniqueOrThrow.mockResolvedValue(subtask);
+      findFirst.mockResolvedValue(subtask);
 
       await expect(
         repository.updateCompletion(
@@ -62,10 +62,40 @@ describe('Subtask persistence', () => {
         ),
       ).resolves.toEqual({ subtask, transitioned });
       expect(updateMany).toHaveBeenCalledWith({
-        where: { id: 'subtask-1', completed: { not: true } },
+        where: {
+          id: 'subtask-1',
+          deletedAt: null,
+          todo: { deletedAt: null },
+          completed: { not: true },
+        },
         data: { completed: true },
       });
-      expect(findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: 'subtask-1' } });
+      expect(findFirst).toHaveBeenCalledWith({
+        where: { id: 'subtask-1', deletedAt: null, todo: { deletedAt: null } },
+      });
     },
   );
+
+  it.each([
+    [1, true],
+    [0, false],
+  ] as const)('conditionally soft deletes an active subtask', async (count, transitioned) => {
+    const deletedAt = new Date('2026-08-10T10:00:00.000Z');
+    const subtask = { id: 'subtask-1', deletedAt };
+    updateMany.mockResolvedValue({ count });
+    findUnique.mockResolvedValue(subtask);
+
+    await expect(
+      repository.softDelete(
+        'subtask-1',
+        deletedAt,
+        transaction as unknown as Prisma.TransactionClient,
+      ),
+    ).resolves.toEqual({ subtask: transitioned ? subtask : null, transitioned });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'subtask-1', deletedAt: null, todo: { deletedAt: null } },
+      data: { deletedAt },
+    });
+    expect(findUnique).toHaveBeenCalledTimes(transitioned ? 1 : 0);
+  });
 });

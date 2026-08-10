@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiEndpoint } from '../../../shared/openapi/api-endpoint.decorator';
 import { ErrorResponseDto } from '../../../shared/openapi/dto/error-response.dto';
@@ -129,5 +139,30 @@ export class TodoController {
     const todo = await this.todos.updateCompletion(session.userId, todoId, input);
 
     return mapTodoResponse(todo);
+  }
+
+  @Delete('todos/:todoId')
+  @ApiEndpoint({
+    operation: { summary: 'Delete a todo' },
+    params: [{ name: 'todoId', type: String, description: 'Todo ID' }],
+    response: {
+      status: HttpStatus.OK,
+      description: 'The todo was deleted successfully',
+      type: TodoResponseDto,
+    },
+    responses: [
+      {
+        status: HttpStatus.UNAUTHORIZED,
+        description: 'The access token is missing or invalid',
+        type: ErrorResponseDto,
+      },
+    ],
+    notFound: { description: 'The todo was not found' },
+  })
+  async delete(
+    @Session() session: SessionContext,
+    @Param('todoId') todoId: string,
+  ): Promise<TodoResponseDto> {
+    return mapTodoResponse(await this.todos.delete(session.userId, todoId));
   }
 }

@@ -28,6 +28,7 @@ describe('Versioned subtask HTTP endpoints', () => {
     rank: new Prisma.Decimal(1000),
     createdAt: dayjs('2026-08-09T10:00:00.000Z').toDate(),
     updatedAt: dayjs('2026-08-09T10:00:00.000Z').toDate(),
+    deletedAt: null,
   };
   const completedSubTask = { ...subtask, completed: true };
   const response = {
@@ -43,6 +44,10 @@ describe('Versioned subtask HTTP endpoints', () => {
   const findForTodo = jest.fn().mockResolvedValue([subtask]);
   const findById = jest.fn().mockResolvedValue(subtask);
   const updateCompletion = jest.fn().mockResolvedValue(completedSubTask);
+  const deleteSubTask = jest.fn().mockResolvedValue({
+    ...subtask,
+    deletedAt: dayjs('2026-08-10T10:00:00.000Z').toDate(),
+  });
   const accessTokenSecret = 'test-access-token-secret-at-least-32-characters';
   let app: INestApplication<App>;
   let jwtService: JwtService;
@@ -55,7 +60,10 @@ describe('Versioned subtask HTTP endpoints', () => {
       ],
       controllers: [SubTaskController],
       providers: [
-        { provide: SubTaskService, useValue: { create, findForTodo, findById, updateCompletion } },
+        {
+          provide: SubTaskService,
+          useValue: { create, findForTodo, findById, updateCompletion, delete: deleteSubTask },
+        },
         { provide: ConfigService, useValue: { get: () => ({ accessTokenSecret }) } },
         { provide: ApplicationLoggerService, useValue: { error: jest.fn() } },
         { provide: APP_FILTER, useClass: GlobalExceptionFilter },
@@ -128,6 +136,15 @@ describe('Versioned subtask HTTP endpoints', () => {
       .expect(200)
       .expect({ ...response, completed: true });
     expect(updateCompletion).toHaveBeenCalledWith('user-1', 'subtask-1', { completed: true });
+  });
+
+  it('deletes a subtask using the session user', async () => {
+    await request(app.getHttpServer())
+      .delete('/api/v1/subtasks/subtask-1')
+      .set('Authorization', await authorization())
+      .expect(200)
+      .expect(response);
+    expect(deleteSubTask).toHaveBeenCalledWith('user-1', 'subtask-1');
   });
 
   it('rejects invalid completion input and unauthenticated access', async () => {

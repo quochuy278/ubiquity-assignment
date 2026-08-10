@@ -7,6 +7,11 @@ export interface CreateSubTaskInput {
 export type SubTaskResult = SubTask;
 
 export interface SubTaskCompletionTransitionResult {
-  subtask: SubTaskResult;
+  subtask: SubTaskResult | null;
+  transitioned: boolean;
+}
+
+export interface SubTaskDeletionTransitionResult {
+  subtask: SubTaskResult | null;
   transitioned: boolean;
 }

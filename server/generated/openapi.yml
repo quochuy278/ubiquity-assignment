@@ -733,6 +733,55 @@ paths:
       security: *a6
       summary: Get a todo by ID
       tags: *a7
+    delete:
+      operationId: TodoController_delete_v1
+      parameters:
+        - name: todoId
+          required: true
+          in: path
+          description: Todo ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The todo was deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a6
+      summary: Delete a todo
+      tags: *a7
   /api/v1/todos/{todoId}/completion:
     patch:
       operationId: TodoController_updateCompletion_v1
@@ -947,6 +996,55 @@ paths:
                 $ref: "#/components/schemas/ErrorResponseDto"
       security: *a8
       summary: Get a subtask by ID
+      tags: *a9
+    delete:
+      operationId: SubTaskController_delete_v1
+      parameters:
+        - name: subtaskId
+          required: true
+          in: path
+          description: Subtask ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The subtask was deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubTaskResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The subtask was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a8
+      summary: Delete a subtask
       tags: *a9
   /api/v1/subtasks/{subtaskId}/completion:
     patch:
@@ -1222,9 +1320,11 @@ components:
         - TODO_CREATED
         - TODO_COMPLETED
         - TODO_UNCOMPLETED
+        - TODO_DELETED
         - SUBTASK_CREATED
         - SUBTASK_COMPLETED
         - SUBTASK_UNCOMPLETED
+        - SUBTASK_DELETED
     ActivityEntityType:
       type: string
       enum:
