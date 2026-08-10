@@ -19,6 +19,7 @@ describe('Subtask use-case behavior and authorization', () => {
     rank: new Prisma.Decimal(1000),
     createdAt: dayjs('2026-08-09T10:00:00.000Z').toDate(),
     updatedAt: dayjs('2026-08-09T10:00:00.000Z').toDate(),
+    deletedAt: null,
   };
   const transactionClient = { subTask: {}, activityEvent: {} };
   const runTransaction = jest.fn();
@@ -26,6 +27,7 @@ describe('Subtask use-case behavior and authorization', () => {
   const findByTodoId = jest.fn();
   const findSubTaskById = jest.fn();
   const updateCompletion = jest.fn();
+  const softDelete = jest.fn();
   const findTodoWithGroup = jest.fn();
   const recordActivity = jest.fn();
   const log = jest.fn();
@@ -35,6 +37,7 @@ describe('Subtask use-case behavior and authorization', () => {
     findByTodoId,
     findById: findSubTaskById,
     updateCompletion,
+    softDelete,
   } as unknown as SubTaskRepository;
   const todos = { findByIdWithGroup: findTodoWithGroup } as unknown as TodoService;
   const activities = { record: recordActivity } as unknown as ActivityService;
@@ -118,6 +121,39 @@ describe('Subtask use-case behavior and authorization', () => {
       code: ErrorCode.SUBTASK_NOT_FOUND,
     });
     expect(updateCompletion).not.toHaveBeenCalled();
+    expect(recordActivity).not.toHaveBeenCalled();
+  });
+
+  it('soft deletes an accessible subtask and records one activity in the transaction', async () => {
+    const deletedSubTask = {
+      ...subtask,
+      deletedAt: dayjs('2026-08-10T10:00:00.000Z').toDate(),
+    };
+    findSubTaskById.mockResolvedValue(subtask);
+    softDelete.mockResolvedValue({ subtask: deletedSubTask, transitioned: true });
+
+    await expect(service.delete('user-1', 'subtask-1')).resolves.toBe(deletedSubTask);
+
+    expect(softDelete).toHaveBeenCalledWith('subtask-1', expect.any(Date), transactionClient);
+    expect(recordActivity).toHaveBeenCalledWith(
+      {
+        groupId: 'group-1',
+        actorId: 'user-1',
+        type: 'SUBTASK_DELETED',
+        entityType: 'SUBTASK',
+        entityId: 'subtask-1',
+      },
+      transactionClient,
+    );
+  });
+
+  it('treats a lost subtask deletion race as not found without recording activity', async () => {
+    findSubTaskById.mockResolvedValue(subtask);
+    softDelete.mockResolvedValue({ subtask: null, transitioned: false });
+
+    await expect(service.delete('user-1', 'subtask-1')).rejects.toMatchObject({
+      code: ErrorCode.SUBTASK_NOT_FOUND,
+    });
     expect(recordActivity).not.toHaveBeenCalled();
   });
 });

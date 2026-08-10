@@ -91,6 +91,7 @@ model Todo {
   updatedById  String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
   todoList     TodoList  @relation(fields: [todoListId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   assignee     User?     @relation("TodoAssignee", fields: [assignedToId], references: [id], onUpdate: Cascade)
   createdBy    User      @relation("TodoCreator", fields: [createdById], references: [id], onUpdate: Cascade)
@@ -103,14 +104,15 @@ model Todo {
 }
 
 model SubTask {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   todoId    String
   title     String
-  completed Boolean  @default(false)
-  rank      Decimal  @db.Decimal(20, 10)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  todo      Todo     @relation(fields: [todoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  completed Boolean   @default(false)
+  rank      Decimal   @db.Decimal(20, 10)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  todo      Todo      @relation(fields: [todoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([todoId])
 }

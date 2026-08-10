@@ -13,7 +13,12 @@ export interface UpdateTodoCompletionInput {
 }
 
 export interface TodoCompletionTransitionResult {
-  todo: TodoResult;
+  todo: TodoResult | null;
+  transitioned: boolean;
+}
+
+export interface TodoDeletionTransitionResult {
+  todo: TodoResult | null;
   transitioned: boolean;
 }
 

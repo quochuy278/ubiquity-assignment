@@ -4,6 +4,7 @@ import { PrismaService } from '../../../../shared/database/prisma/prisma.service
 import type {
   CreateTodoInput,
   TodoCompletionTransitionResult,
+  TodoDeletionTransitionResult,
   TodoResult,
   UpdateTodoCompletionInput,
 } from '../todo.types';
@@ -39,7 +40,7 @@ export class TodoRepository {
   ): Promise<TodoResult> {
     const create = async (client: Prisma.TransactionClient): Promise<TodoResult> => {
       const lastTodo = await client.todo.findFirst({
-        where: { todoListId },
+        where: { todoListId, deletedAt: null },
         select: { rank: true },
         orderBy: [{ rank: 'desc' }, { id: 'asc' }],
       });
@@ -61,13 +62,13 @@ export class TodoRepository {
 
   findByTodoListId(todoListId: string): Promise<TodoResult[]> {
     return this.prisma.todo.findMany({
-      where: { todoListId },
+      where: { todoListId, deletedAt: null },
       orderBy: [{ rank: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
   }
 
   findById(todoId: string): Promise<TodoResult | null> {
-    return this.prisma.todo.findUnique({ where: { id: todoId } });
+    return this.prisma.todo.findFirst({ where: { id: todoId, deletedAt: null } });
   }
 
   async updateCompletion(
@@ -76,10 +77,25 @@ export class TodoRepository {
     transaction: Prisma.TransactionClient,
   ): Promise<TodoCompletionTransitionResult> {
     const update = await transaction.todo.updateMany({
-      where: { id: todoId, status: { not: input.status } },
+      where: { id: todoId, deletedAt: null, status: { not: input.status } },
       data: input,
     });
-    const todo = await transaction.todo.findUniqueOrThrow({ where: { id: todoId } });
+    const todo = await transaction.todo.findFirst({ where: { id: todoId, deletedAt: null } });
+
+    return { todo, transitioned: update.count === 1 };
+  }
+
+  async softDelete(
+    todoId: string,
+    deletedAt: Date,
+    transaction: Prisma.TransactionClient,
+  ): Promise<TodoDeletionTransitionResult> {
+    const update = await transaction.todo.updateMany({
+      where: { id: todoId, deletedAt: null },
+      data: { deletedAt },
+    });
+    const todo =
+      update.count === 1 ? await transaction.todo.findUnique({ where: { id: todoId } }) : null;
 
     return { todo, transitioned: update.count === 1 };
   }

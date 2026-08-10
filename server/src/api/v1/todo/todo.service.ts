@@ -81,6 +81,9 @@ export class TodoService {
         },
         transaction,
       );
+      if (!transition.todo) {
+        throw this.notFound(todoId, userId);
+      }
       if (transition.transitioned) {
         await this.activities.record(
           {
@@ -103,6 +106,34 @@ export class TodoService {
     );
 
     return updatedTodo;
+  }
+
+  async delete(userId: string, todoId: string): Promise<TodoResult> {
+    const { todo, groupId } = await this.findByIdWithGroup(userId, todoId);
+    const deletedTodo = await this.prisma.$transaction(async (transaction) => {
+      const transition = await this.todos.softDelete(todo.id, now().toDate(), transaction);
+      if (!transition.transitioned || !transition.todo) {
+        throw this.notFound(todoId, userId);
+      }
+      await this.activities.record(
+        {
+          groupId,
+          actorId: userId,
+          type: ActivityType.TODO_DELETED,
+          entityType: ActivityEntityType.TODO,
+          entityId: todo.id,
+        },
+        transaction,
+      );
+      return transition.todo;
+    });
+
+    this.logger.log(
+      'Todo deleted',
+      { todoId, todoListId: todo.todoListId, userId },
+      TodoService.name,
+    );
+    return deletedTodo;
   }
 
   async findByIdWithGroup(userId: string, todoId: string): Promise<TodoAccessResult> {

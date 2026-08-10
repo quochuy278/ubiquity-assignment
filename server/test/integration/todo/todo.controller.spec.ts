@@ -35,6 +35,7 @@ describe('Versioned todo HTTP endpoints', () => {
     updatedById: null,
     createdAt: dayjs('2026-08-07T10:00:00.000Z').toDate(),
     updatedAt: dayjs('2026-08-07T10:00:00.000Z').toDate(),
+    deletedAt: null,
   };
   const completedTodo: TodoResult = {
     ...todo,
@@ -69,6 +70,10 @@ describe('Versioned todo HTTP endpoints', () => {
   const findForTodoList = jest.fn().mockResolvedValue([todo]);
   const findById = jest.fn().mockResolvedValue(todo);
   const updateCompletion = jest.fn().mockResolvedValue(completedTodo);
+  const deleteTodo = jest.fn().mockResolvedValue({
+    ...todo,
+    deletedAt: dayjs('2026-08-10T10:00:00.000Z').toDate(),
+  });
   const accessTokenSecret = 'test-access-token-secret-at-least-32-characters';
   let app: INestApplication<App>;
   let jwtService: JwtService;
@@ -83,7 +88,7 @@ describe('Versioned todo HTTP endpoints', () => {
       providers: [
         {
           provide: TodoService,
-          useValue: { create, findForTodoList, findById, updateCompletion },
+          useValue: { create, findForTodoList, findById, updateCompletion, delete: deleteTodo },
         },
         {
           provide: ConfigService,
@@ -186,6 +191,18 @@ describe('Versioned todo HTTP endpoints', () => {
     expect(updateCompletion).toHaveBeenCalledWith('user-1', 'todo-1', { completed: true });
   });
 
+  it('deletes a todo using the session user', async () => {
+    const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/todos/todo-1')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect(todoResponse);
+
+    expect(deleteTodo).toHaveBeenCalledWith('user-1', 'todo-1');
+  });
+
   it('does not expose an inaccessible todo', async () => {
     const accessToken = await jwtService.signAsync({ sub: 'user-2', sid: 'session-2' });
     findById.mockRejectedValueOnce(
@@ -213,11 +230,13 @@ describe('Versioned todo HTTP endpoints', () => {
       .patch('/api/v1/todos/todo-1/completion')
       .send({ completed: true })
       .expect(401);
+    await request(app.getHttpServer()).delete('/api/v1/todos/todo-1').expect(401);
 
     expect(create).not.toHaveBeenCalled();
     expect(findForTodoList).not.toHaveBeenCalled();
     expect(findById).not.toHaveBeenCalled();
     expect(updateCompletion).not.toHaveBeenCalled();
+    expect(deleteTodo).not.toHaveBeenCalled();
   });
 
   it.each(['todoListId', 'groupId', 'createdById', 'updatedById', 'assignedToId', 'userId'])(
