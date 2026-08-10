@@ -9,6 +9,7 @@ import { authTokenStore } from '@/store';
 import { createAuthResponse, testUser } from '../fixtures/auth';
 
 vi.mock('@/features/groups/hooks', () => ({
+  useCreateGroup: () => ({ isError: false, isPending: false, mutate: vi.fn() }),
   useGroups: () => ({ data: [], isError: false, isPending: false }),
 }));
 

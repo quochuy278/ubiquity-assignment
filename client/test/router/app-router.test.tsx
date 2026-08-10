@@ -21,6 +21,7 @@ vi.mock('@/features/auth', async (importOriginal) => ({
 }));
 vi.mock('@/features/auth/hooks', () => authMocks);
 vi.mock('@/features/groups/hooks', () => ({
+  useCreateGroup: () => ({ isError: false, isPending: false, mutate: vi.fn() }),
   useGroups: () => ({ data: [], isError: false, isPending: false }),
 }));
 

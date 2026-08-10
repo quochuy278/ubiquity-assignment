@@ -1,5 +1,6 @@
 import { ChevronRightIcon, UsersIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CreateGroupDialog } from '@/features/groups/components/create-group-dialog';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { useGroups } from '@/features/groups/hooks';
 import { ApiError } from '@/shared/components/api-error';
@@ -18,24 +19,33 @@ export function GroupsPage() {
       {groups.data.length === 0 ? (
         <EmptyState
           title="No groups yet"
-          description="Group creation will be added with the feature UI."
+          description="Create a group to start organizing todo lists."
+          action={<CreateGroupDialog />}
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {groups.data.map((group) => (
-            <Link key={group.id} to={`/groups/${group.id}`}>
-              <Card className="h-full transition-colors hover:bg-muted/40">
-                <CardHeader className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-                  <UsersIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-                  <div>
-                    <CardTitle>{group.name}</CardTitle>
-                    <p className="mt-1 text-muted-foreground text-xs">{group.type}</p>
-                  </div>
-                  <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <CreateGroupDialog />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {groups.data.map((group) => (
+              <Link key={group.id} to={`/groups/${group.id}`}>
+                <Card className="h-full transition-colors hover:bg-muted/40">
+                  <CardHeader className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                    <UsersIcon className="size-5 text-muted-foreground" aria-hidden="true" />
+                    <div>
+                      <CardTitle>{group.name}</CardTitle>
+                      <p className="mt-1 text-muted-foreground text-xs">{group.type}</p>
+                    </div>
+                    <ChevronRightIcon
+                      className="size-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </CardHeader>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </GroupPageSection>

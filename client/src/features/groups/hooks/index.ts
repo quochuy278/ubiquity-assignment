@@ -1,10 +1,15 @@
 import {
+  useCreateGroupMutation,
   useGroupQuery,
   useGroupsQuery,
   useTodoListQuery,
   useTodoListsQuery,
   useTodosQuery,
 } from '@/api/groups';
+
+export function useCreateGroup() {
+  return useCreateGroupMutation();
+}
 
 export function useGroups() {
   return useGroupsQuery();
