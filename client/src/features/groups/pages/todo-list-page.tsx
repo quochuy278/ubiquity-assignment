@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { CircleCheckIcon } from 'lucide-react';
 import { TodoStatus } from '@/api/generated';
 import { CreateTodoDialog } from '@/features/groups/components/create-todo-dialog';
@@ -18,11 +18,16 @@ export function TodoListPage() {
   const list = useTodoList(todoListId);
   const todos = useTodos(todoListId);
 
-  if (group.isPending || list.isPending || todos.isPending) {
+  if (list.isPending) {
+    return <PageLoading label="Loading todos" />;
+  }
+  if (list.isError) return <ApiError error={list.error} onRetry={() => list.refetch()} />;
+  if (list.data.groupId !== groupId) return <Navigate to="/groups" replace />;
+
+  if (group.isPending || todos.isPending) {
     return <PageLoading label="Loading todos" />;
   }
   if (group.isError) return <ApiError error={group.error} onRetry={() => group.refetch()} />;
-  if (list.isError) return <ApiError error={list.error} onRetry={() => list.refetch()} />;
   if (todos.isError) return <ApiError error={todos.error} onRetry={() => todos.refetch()} />;
 
   return (

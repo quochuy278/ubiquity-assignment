@@ -36,6 +36,7 @@ function renderPage(path: string, routePath: string, element: React.ReactNode) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path={routePath} element={element} />
+          <Route path="/groups" element={<h1>Groups fallback</h1>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -91,5 +92,68 @@ describe('Groups hierarchy breadcrumbs', () => {
     expect(
       within(breadcrumb).queryByRole('link', { name: todoList.name }),
     ).not.toBeInTheDocument();
+  });
+
+  it('renders a valid Todo List direct deep link without pre-populated navigation state', async () => {
+    vi.spyOn(groupsApi, 'groupControllerFindByIdV1').mockResolvedValue({ data: group } as never);
+    vi.spyOn(todoListsApi, 'todoListControllerFindByIdV1').mockResolvedValue({
+      data: todoList,
+    } as never);
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1').mockResolvedValue({ data: [] } as never);
+
+    renderPage(
+      `/groups/${groupId}/lists/${todoListId}`,
+      '/groups/:groupId/lists/:todoListId',
+      <TodoListPage />,
+    );
+
+    expect(await screen.findByRole('heading', { name: todoList.name })).toBeInTheDocument();
+    expect(screen.getByText('No todos')).toBeInTheDocument();
+  });
+
+  it('redirects a mismatched Todo List relationship without rendering a false hierarchy', async () => {
+    vi.spyOn(groupsApi, 'groupControllerFindByIdV1').mockResolvedValue({ data: group } as never);
+    vi.spyOn(todoListsApi, 'todoListControllerFindByIdV1').mockResolvedValue({
+      data: { ...todoList, groupId: 'group-2' },
+    } as never);
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1').mockResolvedValue({ data: [] } as never);
+
+    renderPage(
+      `/groups/${groupId}/lists/${todoListId}`,
+      '/groups/:groupId/lists/:todoListId',
+      <TodoListPage />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Groups fallback' })).toBeInTheDocument();
+    expect(screen.queryByText(todoList.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(group.name)).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps showing loading until the Todo List relationship can be validated', async () => {
+    let resolveTodoList: ((value: { data: TodoListResponseDto }) => void) | undefined;
+    const todoListRequest = new Promise<{ data: TodoListResponseDto }>((resolve) => {
+      resolveTodoList = resolve;
+    });
+
+    vi.spyOn(groupsApi, 'groupControllerFindByIdV1').mockResolvedValue({ data: group } as never);
+    vi.spyOn(todoListsApi, 'todoListControllerFindByIdV1').mockReturnValue(
+      todoListRequest as never,
+    );
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1').mockResolvedValue({ data: [] } as never);
+
+    renderPage(
+      `/groups/${groupId}/lists/${todoListId}`,
+      '/groups/:groupId/lists/:todoListId',
+      <TodoListPage />,
+    );
+
+    expect(screen.getByText('Loading todos')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Groups fallback' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).not.toBeInTheDocument();
+
+    resolveTodoList?.({ data: todoList });
+
+    expect(await screen.findByRole('heading', { name: todoList.name })).toBeInTheDocument();
   });
 });
