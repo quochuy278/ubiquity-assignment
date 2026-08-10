@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { authTokenStore } from '@/api/auth/tokens';
 import { AuthApi, Configuration } from '@/api/generated';
 import { createAuthenticatedHttpClient } from '@/api/http-client';
 import { queryClient } from '@/api/query-client';
 import { queryKeys } from '@/api/query-keys';
 import { configuration } from '@/config/configuration';
+import { authTokenStore } from '@/store';
 
 export const generatedApiConfiguration = new Configuration({
   basePath: configuration.api.baseUrl,

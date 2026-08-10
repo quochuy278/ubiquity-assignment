@@ -4,9 +4,9 @@ import axios, {
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import type { AuthTokenStore } from '@/api/auth/tokens';
 import { normalizeApiError } from '@/api/errors';
 import type { AuthResponseDto } from '@/api/generated';
+import type { AuthTokenStore } from '@/store';
 
 interface RetriableRequestConfig extends InternalAxiosRequestConfig {
   authRetryAttempted?: boolean;
@@ -37,7 +37,7 @@ export function createAuthenticatedHttpClient({
   let refreshPromise: Promise<string> | null = null;
 
   client.interceptors.request.use((config) => {
-    const accessToken = tokens.getAccessToken();
+    const { accessToken } = tokens.getState();
 
     if (accessToken && !isPublicAuthRequest(config.url)) {
       config.headers.set('Authorization', `Bearer ${accessToken}`);
@@ -52,7 +52,7 @@ export function createAuthenticatedHttpClient({
     }
 
     const originalRequest = error.config as RetriableRequestConfig;
-    const refreshToken = tokens.getRefreshToken();
+    const { refreshToken } = tokens.getState();
 
     if (
       originalRequest.authRetryAttempted ||
@@ -60,7 +60,7 @@ export function createAuthenticatedHttpClient({
       !refreshToken
     ) {
       if (!isPublicAuthRequest(originalRequest.url)) {
-        tokens.clear();
+        tokens.getState().clearTokens();
         onAuthenticationFailure();
       }
       throw normalizeApiError(error);
@@ -70,11 +70,11 @@ export function createAuthenticatedHttpClient({
 
     refreshPromise ??= refresh(refreshToken)
       .then((response) => {
-        tokens.setFromAuthResponse(response);
+        tokens.getState().setTokens(response);
         return response.accessToken;
       })
       .catch((refreshError: unknown) => {
-        tokens.clear();
+        tokens.getState().clearTokens();
         onAuthenticationFailure();
         throw normalizeApiError(refreshError);
       })

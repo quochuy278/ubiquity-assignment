@@ -1,15 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api/auth/api';
-import { authTokenStore } from '@/api/auth/tokens';
 import { ApiClientError } from '@/api/errors';
 import type { LoginRequestDto, RegisterRequestDto } from '@/api/generated';
 import { queryKeys } from '@/api/query-keys';
+import { authTokenStore } from '@/store';
 
 export function useCurrentUserQuery() {
   return useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: async () => {
-      if (!authTokenStore.getAccessToken() && !authTokenStore.getRefreshToken()) {
+      const { accessToken, refreshToken } = authTokenStore.getState();
+
+      if (!accessToken && !refreshToken) {
         return null;
       }
 
@@ -37,7 +39,7 @@ export function useLoginMutation() {
       return response.data;
     },
     onSuccess: (response) => {
-      authTokenStore.setFromAuthResponse(response);
+      authTokenStore.getState().setTokens(response);
       queryClient.setQueryData(queryKeys.auth.me, response.user);
     },
   });
@@ -52,7 +54,7 @@ export function useRegisterMutation() {
       return response.data;
     },
     onSuccess: (response) => {
-      authTokenStore.setFromAuthResponse(response);
+      authTokenStore.getState().setTokens(response);
       queryClient.setQueryData(queryKeys.auth.me, response.user);
     },
   });
@@ -63,12 +65,12 @@ export function useLogoutMutation() {
 
   return useMutation({
     mutationFn: async () => {
-      if (authTokenStore.getAccessToken()) {
+      if (authTokenStore.getState().accessToken) {
         await authApi.authControllerLogoutV1();
       }
     },
     onSettled: () => {
-      authTokenStore.clear();
+      authTokenStore.getState().clearTokens();
       queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' });
       queryClient.setQueryData(queryKeys.auth.me, null);
     },

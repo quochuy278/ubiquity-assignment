@@ -4,11 +4,11 @@ import {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import { createAuthTokenStore } from '@/api/auth';
 import { ApiClientError } from '@/api/errors';
 import { ErrorCode } from '@/api/generated';
 import { createAuthenticatedHttpClient } from '@/api/http-client';
 import { DEFAULT_API_TIMEOUT_MS } from '@/config/api-timeout';
+import { createAuthTokenStore } from '@/store';
 import { createAuthResponse } from '../fixtures/auth';
 
 function failedResponse(config: InternalAxiosRequestConfig, status: number, data: unknown) {
@@ -41,7 +41,7 @@ describe('authenticated HTTP client', () => {
 
   it('refreshes expired authentication and retries the original request once', async () => {
     const tokens = createAuthTokenStore(window.localStorage);
-    tokens.setFromAuthResponse(createAuthResponse('expired-access', 'valid-refresh'));
+    tokens.getState().setTokens(createAuthResponse('expired-access', 'valid-refresh'));
     const refresh = vi.fn(async () => createAuthResponse('fresh-access', 'rotated-refresh'));
     const client = createAuthenticatedHttpClient({
       baseUrl: 'http://api.test',
@@ -61,12 +61,12 @@ describe('authenticated HTTP client', () => {
 
     expect(response.data).toEqual({ ok: true });
     expect(refresh).toHaveBeenCalledOnce();
-    expect(tokens.getRefreshToken()).toBe('rotated-refresh');
+    expect(tokens.getState().refreshToken).toBe('rotated-refresh');
   });
 
   it('clears authentication when refresh fails', async () => {
     const tokens = createAuthTokenStore(window.localStorage);
-    tokens.setFromAuthResponse(createAuthResponse('expired-access', 'invalid-refresh'));
+    tokens.getState().setTokens(createAuthResponse('expired-access', 'invalid-refresh'));
     const onAuthenticationFailure = vi.fn();
     const client = createAuthenticatedHttpClient({
       baseUrl: 'http://api.test',
@@ -87,14 +87,14 @@ describe('authenticated HTTP client', () => {
       status: null,
     });
 
-    expect(tokens.getAccessToken()).toBeNull();
-    expect(tokens.getRefreshToken()).toBeNull();
+    expect(tokens.getState().accessToken).toBeNull();
+    expect(tokens.getState().refreshToken).toBeNull();
     expect(onAuthenticationFailure).toHaveBeenCalledOnce();
   });
 
   it('shares one refresh operation across concurrent authentication failures', async () => {
     const tokens = createAuthTokenStore(window.localStorage);
-    tokens.setFromAuthResponse(createAuthResponse('expired-access', 'valid-refresh'));
+    tokens.getState().setTokens(createAuthResponse('expired-access', 'valid-refresh'));
     let resolveRefresh: (value: ReturnType<typeof createAuthResponse>) => void = () => undefined;
     const refresh = vi.fn(
       () =>
@@ -128,7 +128,7 @@ describe('authenticated HTTP client', () => {
 
   it('normalizes a 403 backend response without attempting token refresh', async () => {
     const tokens = createAuthTokenStore(window.localStorage);
-    tokens.setFromAuthResponse(createAuthResponse());
+    tokens.getState().setTokens(createAuthResponse());
     const refresh = vi.fn(async () => createAuthResponse());
     const client = createAuthenticatedHttpClient({
       baseUrl: 'http://api.test',
