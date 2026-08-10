@@ -17,6 +17,7 @@ overview and assignment story status.
 - Joi environment validation
 - Swagger/OpenAPI
 - Winston through `nest-winston`
+- Ably REST SDK for server-side TodoList event publication
 - Jest, Nest testing utilities, and Supertest
 - Biome
 - Docker and Railway configuration
@@ -31,7 +32,7 @@ From `server/`:
 ```bash
 pnpm install
 cp .env.example .env
-# Set DATABASE_URL and DIRECT_URL in .env.
+# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY in .env.
 pnpm prisma:migrate:deploy
 pnpm start:dev
 ```
@@ -81,6 +82,7 @@ use `.env.test.local`.
 | `AUTH_ACCESS_TOKEN_SECRET` | Production: yes; development: no | JWT signing secret, minimum 32 characters. Development has a local-only default. |
 | `DATABASE_URL` | Yes | PostgreSQL runtime connection string used by the Prisma driver adapter. |
 | `DIRECT_URL` | Yes | Direct PostgreSQL connection used by Prisma CLI operations and migrations. |
+| `ABLY_KEY` | Yes | Ably API key used by the server to publish realtime notifications. |
 
 Use values shaped like those in [`.env.example`](.env.example); never commit real credentials.
 
@@ -92,6 +94,7 @@ Use values shaped like those in [`.env.example`](.env.example); never commit rea
 | `E2E_AUTH_ACCESS_TOKEN_SECRET` | Yes | Test-only JWT secret, minimum 32 characters. |
 | `E2E_DATABASE_URL` | Yes | Runtime connection to the dedicated E2E PostgreSQL database. |
 | `E2E_DIRECT_URL` | Yes | Direct migration connection for the E2E database. |
+| `ABLY_KEY` | No | Ably API key. Test configuration uses a non-secret local default because automated tests mock the transport and never call Ably. |
 
 CORS is currently enabled for all origins in application bootstrap as a development/demo policy;
 there is no frontend-origin environment variable. An explicit allowlist would be required before a
@@ -290,8 +293,36 @@ Relevant services write the entity mutation and its activity inside the same Pri
 No-op completion and reorder requests do not create duplicate activity. History is exposed through
 an authenticated, cursor-paginated Group endpoint ordered newest first.
 
-ActivityEvent does not publish messages, open sockets, or synchronize clients. It is not realtime
-collaboration infrastructure.
+ActivityEvent remains separate from realtime collaboration infrastructure. It is persistent
+Group-scoped audit/history; realtime events are ephemeral TodoList-scoped invalidation notices.
+Realtime publication does not create additional ActivityEvent rows or expose ActivityEvent data.
+
+## Server-side Realtime Collaboration
+
+The server provides the transport half of TodoList collaboration. PostgreSQL and the REST API
+remain authoritative: a Todo or Subtask mutation is validated and persisted first, including any
+transactional ActivityEvent, and only then is a small notification published through Ably. The
+frontend subscription is not implemented yet.
+
+Each TodoList has exactly one channel named `todo-list:{todoListId}`. This server does not expose a
+realtime token endpoint; client-side Ably configuration is handled directly by the frontend setup.
+
+The current application-owned event contract is intentionally limited to:
+
+- `TODO_CREATED`: `{ type, todoListId, todoId }`
+- `TODO_COMPLETION_CHANGED`: `{ type, todoListId, todoId }`
+- `TODO_REORDERED`: `{ type, todoListId, todoId }`
+- `SUBTASK_CREATED`: `{ type, todoListId, todoId, subtaskId }`
+- `SUBTASK_COMPLETION_CHANGED`: `{ type, todoListId, todoId, subtaskId }`
+
+Completion events use neutral `*_COMPLETION_CHANGED` names because the existing API supports both
+completion and reopening. No event is published for a completion or reorder no-op.
+
+Publication is best-effort and happens only after the Prisma transaction resolves successfully. A
+database or ActivityEvent failure produces no notification. If Ably publication fails after commit,
+the server logs structured non-secret context and preserves the successful REST result; clients can
+converge by refetching authoritative REST state. There is deliberately no outbox, retry queue,
+history/replay, presence, or generic event bus in this slice.
 
 ## Validation & Error Handling
 
@@ -436,8 +467,8 @@ horizontal-scaling guarantee.
 
 ## Known Trade-offs
 
-- The server is authoritative and online-only; there is no realtime transport or offline conflict
-  protocol.
+- The server now publishes a narrow set of TodoList invalidation notifications, but the client does
+  not subscribe yet and there is no offline conflict protocol.
 - ActivityEvent is audit/history, not a client synchronization mechanism.
 - Todo ordering uses fractional Decimal ranks with a small list-local rebalance on exhaustion.
 - Reorder has no distributed lock, Serializable isolation, or generalized retry framework.

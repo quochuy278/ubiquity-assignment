@@ -3,6 +3,9 @@ import { ErrorCode } from '../../../common/exception/error-code';
 import { GlobalException } from '../../../common/exception/global.exception';
 import { ApplicationLoggerService } from '../../../common/logger/logger.service';
 import { PrismaService } from '../../../shared/database/prisma/prisma.service';
+import { TodoListRealtimeEventType } from '../../../shared/realtime/realtime.constants';
+import { RealtimePublisher } from '../../../shared/realtime/realtime.publisher';
+import type { TodoListRealtimeEvent } from '../../../shared/realtime/realtime.types';
 import { now } from '../../../shared/utils/time.utilities';
 import { ActivityEntityType, ActivityType } from '../activity/activity.constants';
 import { ActivityService } from '../activity/activity.service';
@@ -20,10 +23,11 @@ export class SubTaskService {
     private readonly todos: TodoService,
     private readonly activities: ActivityService,
     private readonly logger: ApplicationLoggerService,
+    private readonly realtime: RealtimePublisher,
   ) {}
 
   async create(userId: string, todoId: string, input: CreateSubTaskDto): Promise<SubTaskResult> {
-    const { groupId } = await this.todos.findByIdWithGroup(userId, todoId);
+    const { todo, groupId } = await this.todos.findByIdWithGroup(userId, todoId);
     const subtask = await this.prisma.$transaction(async (transaction) => {
       const created = await this.subtasks.createWithTransaction(todoId, input, transaction);
       await this.activities.record(
@@ -37,6 +41,13 @@ export class SubTaskService {
         transaction,
       );
       return created;
+    });
+
+    await this.publishRealtimeEvent({
+      type: TodoListRealtimeEventType.SUBTASK_CREATED,
+      todoListId: todo.todoListId,
+      todoId,
+      subtaskId: subtask.id,
     });
 
     this.logger.log(
@@ -62,8 +73,8 @@ export class SubTaskService {
     subtaskId: string,
     input: UpdateSubTaskCompletionDto,
   ): Promise<SubTaskResult> {
-    const { subtask, groupId } = await this.findAccessibleSubTask(userId, subtaskId);
-    const updatedSubTask = await this.prisma.$transaction(async (transaction) => {
+    const { subtask, groupId, todoListId } = await this.findAccessibleSubTask(userId, subtaskId);
+    const transition = await this.prisma.$transaction(async (transaction) => {
       const transition = await this.subtasks.updateCompletion(
         subtask.id,
         input.completed,
@@ -72,6 +83,7 @@ export class SubTaskService {
       if (!transition.subtask) {
         throw this.notFound(subtaskId, userId);
       }
+      const updatedSubTask = transition.subtask;
       if (transition.transitioned) {
         await this.activities.record(
           {
@@ -81,20 +93,29 @@ export class SubTaskService {
               ? ActivityType.SUBTASK_COMPLETED
               : ActivityType.SUBTASK_UNCOMPLETED,
             entityType: ActivityEntityType.SUBTASK,
-            entityId: transition.subtask.id,
+            entityId: updatedSubTask.id,
           },
           transaction,
         );
       }
-      return transition.subtask;
+      return { subtask: updatedSubTask, transitioned: transition.transitioned };
     });
+
+    if (transition.transitioned) {
+      await this.publishRealtimeEvent({
+        type: TodoListRealtimeEventType.SUBTASK_COMPLETION_CHANGED,
+        todoListId,
+        todoId: subtask.todoId,
+        subtaskId: transition.subtask.id,
+      });
+    }
 
     this.logger.log(
       'Subtask completion updated',
       { subtaskId, todoId: subtask.todoId, userId, completed: input.completed },
       SubTaskService.name,
     );
-    return updatedSubTask;
+    return transition.subtask;
   }
 
   async delete(userId: string, subtaskId: string): Promise<SubTaskResult> {
@@ -128,20 +149,38 @@ export class SubTaskService {
   private async findAccessibleSubTask(
     userId: string,
     subtaskId: string,
-  ): Promise<{ subtask: SubTaskResult; groupId: string }> {
+  ): Promise<{ subtask: SubTaskResult; groupId: string; todoListId: string }> {
     const subtask = await this.subtasks.findById(subtaskId);
     if (!subtask) {
       throw this.notFound(subtaskId, userId);
     }
 
     try {
-      const { groupId } = await this.todos.findByIdWithGroup(userId, subtask.todoId);
-      return { subtask, groupId };
+      const { todo, groupId } = await this.todos.findByIdWithGroup(userId, subtask.todoId);
+      return { subtask, groupId, todoListId: todo.todoListId };
     } catch (error: unknown) {
       if (error instanceof GlobalException && error.code === ErrorCode.TASK_NOT_FOUND) {
         throw this.notFound(subtaskId, userId);
       }
       throw error;
+    }
+  }
+
+  private async publishRealtimeEvent(event: TodoListRealtimeEvent): Promise<void> {
+    try {
+      await this.realtime.publishTodoListEvent(event);
+    } catch (error: unknown) {
+      this.logger.warn(
+        'Realtime publication failed after subtask mutation persisted',
+        {
+          eventType: event.type,
+          todoListId: event.todoListId,
+          todoId: event.todoId,
+          subtaskId: 'subtaskId' in event ? event.subtaskId : undefined,
+          errorMessage: error instanceof Error ? error.message : 'Unknown publication error',
+        },
+        SubTaskService.name,
+      );
     }
   }
 

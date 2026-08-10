@@ -13,4 +13,7 @@ export interface ApplicationConfig {
     idleTimeoutMillis: number;
     maxConnections: number;
   };
+  realtime: {
+    ablyKey: string;
+  };
 }

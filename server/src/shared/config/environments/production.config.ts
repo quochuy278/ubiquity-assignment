@@ -6,6 +6,7 @@ const productionEnvironmentSchema = Joi.object({
   AUTH_ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
   DATABASE_URL: Joi.string().required(),
   DIRECT_URL: Joi.string().required(),
+  ABLY_KEY: Joi.string().required(),
 }).unknown(true);
 
 export default (): ApplicationConfig => {
@@ -32,6 +33,9 @@ export default (): ApplicationConfig => {
       connectionTimeoutMillis: 10_000,
       idleTimeoutMillis: 20_000,
       maxConnections: 10,
+    },
+    realtime: {
+      ablyKey: value.ABLY_KEY as string,
     },
   };
 };

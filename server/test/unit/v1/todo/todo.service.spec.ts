@@ -10,6 +10,7 @@ import { ErrorCode } from '../../../../src/common/exception/error-code';
 import { GlobalException } from '../../../../src/common/exception/global.exception';
 import type { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
 import type { PrismaService } from '../../../../src/shared/database/prisma/prisma.service';
+import type { RealtimePublisher } from '../../../../src/shared/realtime/realtime.publisher';
 
 describe('Todo use-case behavior and authorization', () => {
   const todo: TodoResult = {
@@ -42,6 +43,8 @@ describe('Todo use-case behavior and authorization', () => {
       callback(transactionClient),
   );
   const log = jest.fn();
+  const warn = jest.fn();
+  const publishTodoListEvent = jest.fn();
   const todoLists = { findById: findTodoListById } as unknown as TodoListService;
   const todos = {
     createWithTransaction: createTodo,
@@ -53,8 +56,9 @@ describe('Todo use-case behavior and authorization', () => {
   } as unknown as TodoRepository;
   const prisma = { $transaction: runTransaction } as unknown as PrismaService;
   const activities = { record: recordActivity } as unknown as ActivityService;
-  const logger = { log } as unknown as ApplicationLoggerService;
-  const service = new TodoService(prisma, todos, todoLists, activities, logger);
+  const logger = { log, warn } as unknown as ApplicationLoggerService;
+  const realtime = { publishTodoListEvent } as unknown as RealtimePublisher;
+  const service = new TodoService(prisma, todos, todoLists, activities, logger, realtime);
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -63,6 +67,7 @@ describe('Todo use-case behavior and authorization', () => {
         callback(transactionClient),
     );
     findTodoListById.mockResolvedValue({ id: 'list-1', groupId: 'group-1' });
+    publishTodoListEvent.mockResolvedValue(undefined);
   });
 
   it('validates todo-list access before creating with session-derived ownership', async () => {
@@ -105,6 +110,11 @@ describe('Todo use-case behavior and authorization', () => {
       { todoId: 'todo-1', todoListId: 'list-1', userId: 'user-1' },
       TodoService.name,
     );
+    expect(publishTodoListEvent).toHaveBeenCalledWith({
+      type: 'TODO_CREATED',
+      todoListId: 'list-1',
+      todoId: 'todo-1',
+    });
   });
 
   it('does not query or create todos when todo-list access is denied', async () => {
@@ -124,6 +134,17 @@ describe('Todo use-case behavior and authorization', () => {
 
     expect(createTodo).not.toHaveBeenCalled();
     expect(findByTodoListId).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not publish when todo creation fails inside the transaction', async () => {
+    createTodo.mockRejectedValue(new Error('todo write failed'));
+
+    await expect(service.create('user-1', 'list-1', { title: 'Buy groceries' })).rejects.toThrow(
+      'todo write failed',
+    );
+
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('retrieves a deterministically ordered collection only after list access validation', async () => {
@@ -210,6 +231,11 @@ describe('Todo use-case behavior and authorization', () => {
       },
       TodoService.name,
     );
+    expect(publishTodoListEvent).toHaveBeenCalledWith({
+      type: 'TODO_COMPLETION_CHANGED',
+      todoListId: 'list-1',
+      todoId: 'todo-1',
+    });
   });
 
   it('reopens an accessible todo by clearing its completion timestamp', async () => {
@@ -236,6 +262,11 @@ describe('Todo use-case behavior and authorization', () => {
       expect.objectContaining({ type: 'TODO_UNCOMPLETED' }),
       transactionClient,
     );
+    expect(publishTodoListEvent).toHaveBeenCalledWith({
+      type: 'TODO_COMPLETION_CHANGED',
+      todoListId: 'list-1',
+      todoId: 'todo-1',
+    });
   });
 
   it('returns the current todo without activity when completion is already at the target state', async () => {
@@ -253,6 +284,7 @@ describe('Todo use-case behavior and authorization', () => {
 
     expect(updateCompletion).toHaveBeenCalled();
     expect(recordActivity).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('does not mutate an inaccessible todo', async () => {
@@ -270,6 +302,18 @@ describe('Todo use-case behavior and authorization', () => {
 
     expect(updateCompletion).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not publish when todo completion fails inside the transaction', async () => {
+    findTodoById.mockResolvedValue(todo);
+    updateCompletion.mockRejectedValue(new Error('completion write failed'));
+
+    await expect(service.updateCompletion('user-1', 'todo-1', { completed: true })).rejects.toThrow(
+      'completion write failed',
+    );
+
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('reorders an accessible todo and records one activity in the transaction', async () => {
@@ -298,6 +342,27 @@ describe('Todo use-case behavior and authorization', () => {
       },
       transactionClient,
     );
+    expect(publishTodoListEvent).toHaveBeenCalledWith({
+      type: 'TODO_REORDERED',
+      todoListId: 'list-1',
+      todoId: 'todo-1',
+    });
+  });
+
+  it('publishes reorder only after the transaction callback and activity have succeeded', async () => {
+    const reorderedTodo = { ...todo, rank: new Prisma.Decimal(1500), updatedById: 'user-1' };
+    findTodoById.mockResolvedValue(todo);
+    reorderTodo.mockResolvedValue({ kind: 'reordered', todo: reorderedTodo });
+    runTransaction.mockImplementationOnce(async (callback) => {
+      const result = await callback(transactionClient);
+      expect(recordActivity).toHaveBeenCalledTimes(1);
+      expect(publishTodoListEvent).not.toHaveBeenCalled();
+      return result;
+    });
+
+    await service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-2' });
+
+    expect(publishTodoListEvent).toHaveBeenCalledTimes(1);
   });
 
   it('returns a no-op reorder without activity or mutation logging', async () => {
@@ -308,6 +373,7 @@ describe('Todo use-case behavior and authorization', () => {
 
     expect(recordActivity).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('rejects self and cross-list reorder anchors without recording activity', async () => {
@@ -322,6 +388,7 @@ describe('Todo use-case behavior and authorization', () => {
       service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-from-another-list' }),
     ).rejects.toMatchObject({ code: ErrorCode.TASK_NOT_FOUND });
     expect(recordActivity).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('does not reorder an inaccessible todo', async () => {
@@ -337,6 +404,7 @@ describe('Todo use-case behavior and authorization', () => {
       { code: ErrorCode.TASK_NOT_FOUND },
     );
     expect(reorderTodo).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('propagates activity failure from the same reorder transaction', async () => {
@@ -349,6 +417,38 @@ describe('Todo use-case behavior and authorization', () => {
       'activity write failed',
     );
     expect(log).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not publish when todo reorder fails inside the transaction', async () => {
+    findTodoById.mockResolvedValue(todo);
+    reorderTodo.mockRejectedValue(new Error('reorder write failed'));
+
+    await expect(service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-2' })).rejects.toThrow(
+      'reorder write failed',
+    );
+
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
+  it('preserves a successful create result when realtime publication fails after commit', async () => {
+    createTodo.mockResolvedValue(todo);
+    publishTodoListEvent.mockRejectedValue(new Error('Ably unavailable'));
+
+    await expect(service.create('user-1', 'list-1', { title: 'Buy groceries' })).resolves.toBe(
+      todo,
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      'Realtime publication failed after todo mutation persisted',
+      expect.objectContaining({
+        eventType: 'TODO_CREATED',
+        todoListId: 'list-1',
+        todoId: 'todo-1',
+        errorMessage: 'Ably unavailable',
+      }),
+      TodoService.name,
+    );
   });
 
   it('soft deletes an accessible todo and records one activity in the transaction', async () => {

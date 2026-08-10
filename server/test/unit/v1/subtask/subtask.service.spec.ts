@@ -9,6 +9,7 @@ import { ErrorCode } from '../../../../src/common/exception/error-code';
 import { GlobalException } from '../../../../src/common/exception/global.exception';
 import type { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
 import type { PrismaService } from '../../../../src/shared/database/prisma/prisma.service';
+import type { RealtimePublisher } from '../../../../src/shared/realtime/realtime.publisher';
 
 describe('Subtask use-case behavior and authorization', () => {
   const subtask: SubTaskResult = {
@@ -31,6 +32,8 @@ describe('Subtask use-case behavior and authorization', () => {
   const findTodoWithGroup = jest.fn();
   const recordActivity = jest.fn();
   const log = jest.fn();
+  const warn = jest.fn();
+  const publishTodoListEvent = jest.fn();
   const prisma = { $transaction: runTransaction } as unknown as PrismaService;
   const subtasks = {
     createWithTransaction: createSubTask,
@@ -41,8 +44,9 @@ describe('Subtask use-case behavior and authorization', () => {
   } as unknown as SubTaskRepository;
   const todos = { findByIdWithGroup: findTodoWithGroup } as unknown as TodoService;
   const activities = { record: recordActivity } as unknown as ActivityService;
-  const logger = { log } as unknown as ApplicationLoggerService;
-  const service = new SubTaskService(prisma, subtasks, todos, activities, logger);
+  const logger = { log, warn } as unknown as ApplicationLoggerService;
+  const realtime = { publishTodoListEvent } as unknown as RealtimePublisher;
+  const service = new SubTaskService(prisma, subtasks, todos, activities, logger, realtime);
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -50,7 +54,11 @@ describe('Subtask use-case behavior and authorization', () => {
       (callback: (client: typeof transactionClient) => Promise<unknown>) =>
         callback(transactionClient),
     );
-    findTodoWithGroup.mockResolvedValue({ todo: { id: 'todo-1' }, groupId: 'group-1' });
+    findTodoWithGroup.mockResolvedValue({
+      todo: { id: 'todo-1', todoListId: 'list-1' },
+      groupId: 'group-1',
+    });
+    publishTodoListEvent.mockResolvedValue(undefined);
   });
 
   it('creates a subtask and its activity in the same transaction', async () => {
@@ -69,6 +77,22 @@ describe('Subtask use-case behavior and authorization', () => {
       },
       transactionClient,
     );
+    expect(publishTodoListEvent).toHaveBeenCalledWith({
+      type: 'SUBTASK_CREATED',
+      todoListId: 'list-1',
+      todoId: 'todo-1',
+      subtaskId: 'subtask-1',
+    });
+  });
+
+  it('does not publish when subtask creation fails inside the transaction', async () => {
+    createSubTask.mockRejectedValue(new Error('subtask write failed'));
+
+    await expect(service.create('user-1', 'todo-1', { title: 'Buy milk' })).rejects.toThrow(
+      'subtask write failed',
+    );
+
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -93,6 +117,12 @@ describe('Subtask use-case behavior and authorization', () => {
       },
       transactionClient,
     );
+    expect(publishTodoListEvent).toHaveBeenCalledWith({
+      type: 'SUBTASK_COMPLETION_CHANGED',
+      todoListId: 'list-1',
+      todoId: 'todo-1',
+      subtaskId: 'subtask-1',
+    });
   });
 
   it('returns the current subtask without activity when completion is already at the target state', async () => {
@@ -106,6 +136,18 @@ describe('Subtask use-case behavior and authorization', () => {
 
     expect(updateCompletion).toHaveBeenCalled();
     expect(recordActivity).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not publish when subtask completion fails inside the transaction', async () => {
+    findSubTaskById.mockResolvedValue(subtask);
+    updateCompletion.mockRejectedValue(new Error('completion write failed'));
+
+    await expect(
+      service.updateCompletion('user-1', 'subtask-1', { completed: true }),
+    ).rejects.toThrow('completion write failed');
+
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('maps inaccessible and missing parent chains to the same subtask not-found result', async () => {
@@ -122,6 +164,30 @@ describe('Subtask use-case behavior and authorization', () => {
     });
     expect(updateCompletion).not.toHaveBeenCalled();
     expect(recordActivity).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
+  it('preserves a successful completion result when realtime publication fails', async () => {
+    const updated = { ...subtask, completed: true };
+    findSubTaskById.mockResolvedValue(subtask);
+    updateCompletion.mockResolvedValue({ subtask: updated, transitioned: true });
+    publishTodoListEvent.mockRejectedValue(new Error('Ably unavailable'));
+
+    await expect(
+      service.updateCompletion('user-1', 'subtask-1', { completed: true }),
+    ).resolves.toBe(updated);
+
+    expect(warn).toHaveBeenCalledWith(
+      'Realtime publication failed after subtask mutation persisted',
+      expect.objectContaining({
+        eventType: 'SUBTASK_COMPLETION_CHANGED',
+        todoListId: 'list-1',
+        todoId: 'todo-1',
+        subtaskId: 'subtask-1',
+        errorMessage: 'Ably unavailable',
+      }),
+      SubTaskService.name,
+    );
   });
 
   it('soft deletes an accessible subtask and records one activity in the transaction', async () => {
