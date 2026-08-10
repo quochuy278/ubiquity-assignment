@@ -838,6 +838,62 @@ paths:
       security: *a6
       summary: Update a todo's completion state
       tags: *a7
+  /api/v1/todos/{todoId}/reorder:
+    patch:
+      operationId: TodoController_reorder_v1
+      parameters:
+        - name: todoId
+          required: true
+          in: path
+          description: Todo ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderTodoDto"
+      responses:
+        "200":
+          description: The todo was reordered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodoResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The todo or reorder anchor was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a6
+      summary: Reorder a todo within its todo list
+      tags: *a7
   /api/v1/todos/{todoId}/subtasks:
     post:
       operationId: SubTaskController_create_v1
@@ -1325,6 +1381,7 @@ components:
         - TODO_CREATED
         - TODO_COMPLETED
         - TODO_UNCOMPLETED
+        - TODO_REORDERED
         - TODO_DELETED
         - SUBTASK_CREATED
         - SUBTASK_COMPLETED
@@ -1508,6 +1565,17 @@ components:
           example: true
       required:
         - completed
+    ReorderTodoDto:
+      type: object
+      properties:
+        beforeTodoId:
+          type: string
+          nullable: true
+          description: Todo ID that should immediately follow the moved Todo; null moves
+            it to the end
+          example: todo-next
+      required:
+        - beforeTodoId
     CreateSubTaskDto:
       type: object
       properties:

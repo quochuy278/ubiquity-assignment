@@ -70,6 +70,7 @@ describe('Versioned todo HTTP endpoints', () => {
   const findForTodoList = jest.fn().mockResolvedValue([todo]);
   const findById = jest.fn().mockResolvedValue(todo);
   const updateCompletion = jest.fn().mockResolvedValue(completedTodo);
+  const reorder = jest.fn().mockResolvedValue({ ...todo, rank: new Prisma.Decimal(1500) });
   const deleteTodo = jest.fn().mockResolvedValue({
     ...todo,
     deletedAt: dayjs('2026-08-10T10:00:00.000Z').toDate(),
@@ -88,7 +89,14 @@ describe('Versioned todo HTTP endpoints', () => {
       providers: [
         {
           provide: TodoService,
-          useValue: { create, findForTodoList, findById, updateCompletion, delete: deleteTodo },
+          useValue: {
+            create,
+            findForTodoList,
+            findById,
+            updateCompletion,
+            reorder,
+            delete: deleteTodo,
+          },
         },
         {
           provide: ConfigService,
@@ -191,6 +199,33 @@ describe('Versioned todo HTTP endpoints', () => {
     expect(updateCompletion).toHaveBeenCalledWith('user-1', 'todo-1', { completed: true });
   });
 
+  it('reorders a todo using an intent-based anchor', async () => {
+    const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/todos/todo-1/reorder')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ beforeTodoId: 'todo-2' })
+      .expect(200)
+      .expect({ ...todoResponse, rank: '1500' });
+
+    expect(reorder).toHaveBeenCalledWith('user-1', 'todo-1', {
+      beforeTodoId: 'todo-2',
+    });
+  });
+
+  it('accepts null as the explicit move-to-end intent', async () => {
+    const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/todos/todo-1/reorder')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ beforeTodoId: null })
+      .expect(200);
+
+    expect(reorder).toHaveBeenCalledWith('user-1', 'todo-1', { beforeTodoId: null });
+  });
+
   it('deletes a todo using the session user', async () => {
     const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
 
@@ -230,12 +265,17 @@ describe('Versioned todo HTTP endpoints', () => {
       .patch('/api/v1/todos/todo-1/completion')
       .send({ completed: true })
       .expect(401);
+    await request(app.getHttpServer())
+      .patch('/api/v1/todos/todo-1/reorder')
+      .send({ beforeTodoId: null })
+      .expect(401);
     await request(app.getHttpServer()).delete('/api/v1/todos/todo-1').expect(401);
 
     expect(create).not.toHaveBeenCalled();
     expect(findForTodoList).not.toHaveBeenCalled();
     expect(findById).not.toHaveBeenCalled();
     expect(updateCompletion).not.toHaveBeenCalled();
+    expect(reorder).not.toHaveBeenCalled();
     expect(deleteTodo).not.toHaveBeenCalled();
   });
 
@@ -265,4 +305,19 @@ describe('Versioned todo HTTP endpoints', () => {
 
     expect(updateCompletion).not.toHaveBeenCalled();
   });
+
+  it.each([{}, { beforeTodoId: '' }, { beforeTodoId: 42 }, { beforeTodoId: null, rank: '1' }])(
+    'rejects malformed reorder intent %#',
+    async (body) => {
+      const accessToken = await jwtService.signAsync({ sub: 'user-1', sid: 'session-1' });
+
+      await request(app.getHttpServer())
+        .patch('/api/v1/todos/todo-1/reorder')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(body)
+        .expect(400);
+
+      expect(reorder).not.toHaveBeenCalled();
+    },
+  );
 });

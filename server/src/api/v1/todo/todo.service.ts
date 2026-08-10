@@ -9,6 +9,7 @@ import { ActivityEntityType, ActivityType } from '../activity/activity.constants
 import { ActivityService } from '../activity/activity.service';
 import { TodoListService } from '../todo-list/todo-list.service';
 import type { CreateTodoDto } from './dto/create-todo.dto';
+import type { ReorderTodoDto } from './dto/reorder-todo.dto';
 import type { UpdateTodoCompletionDto } from './dto/update-todo-completion.dto';
 import { TodoRepository } from './repositories/todo.repository';
 import { TodoStatus } from './todo.constants';
@@ -106,6 +107,51 @@ export class TodoService {
     );
 
     return updatedTodo;
+  }
+
+  async reorder(userId: string, todoId: string, input: ReorderTodoDto): Promise<TodoResult> {
+    if (input.beforeTodoId === todoId) {
+      throw new GlobalException(ErrorCode.VALIDATION_ERROR, {
+        errors: [{ field: 'beforeTodoId', messages: ['beforeTodoId must differ from todoId'] }],
+      });
+    }
+
+    const { todo, groupId } = await this.findByIdWithGroup(userId, todoId);
+    const transition = await this.prisma.$transaction(async (transaction) => {
+      const result = await this.todos.reorder(
+        todo.id,
+        todo.todoListId,
+        input.beforeTodoId,
+        userId,
+        transaction,
+      );
+      if (result.kind === 'notFound') throw this.notFound(todoId, userId);
+      if (result.kind === 'invalidAnchor') {
+        throw this.notFound(input.beforeTodoId ?? todoId, userId);
+      }
+      if (result.kind === 'reordered') {
+        await this.activities.record(
+          {
+            groupId,
+            actorId: userId,
+            type: ActivityType.TODO_REORDERED,
+            entityType: ActivityEntityType.TODO,
+            entityId: todo.id,
+          },
+          transaction,
+        );
+      }
+      return result;
+    });
+
+    if (transition.kind === 'reordered') {
+      this.logger.log(
+        'Todo reordered',
+        { todoId, todoListId: todo.todoListId, userId, beforeTodoId: input.beforeTodoId },
+        TodoService.name,
+      );
+    }
+    return transition.todo;
   }
 
   async delete(userId: string, todoId: string): Promise<TodoResult> {

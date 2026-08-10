@@ -20,6 +20,7 @@ export const ActivityType = {
     TodoCreated: 'TODO_CREATED',
     TodoCompleted: 'TODO_COMPLETED',
     TodoUncompleted: 'TODO_UNCOMPLETED',
+    TodoReordered: 'TODO_REORDERED',
     TodoDeleted: 'TODO_DELETED',
     SubtaskCreated: 'SUBTASK_CREATED',
     SubtaskCompleted: 'SUBTASK_COMPLETED',

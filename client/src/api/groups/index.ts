@@ -6,6 +6,7 @@ export {
   useCreateTodoListMutation,
   useGroupQuery,
   useGroupsQuery,
+  useReorderTodoMutation,
   useSubtasksQuery,
   useTodoListQuery,
   useTodoListsQuery,

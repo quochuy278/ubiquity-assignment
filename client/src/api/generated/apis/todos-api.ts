@@ -26,6 +26,8 @@ import type { CreateTodoDto } from '../models';
 // @ts-ignore
 import type { ErrorResponseDto } from '../models';
 // @ts-ignore
+import type { ReorderTodoDto } from '../models';
+// @ts-ignore
 import type { TodoResponseDto } from '../models';
 // @ts-ignore
 import type { UpdateTodoCompletionDto } from '../models';
@@ -195,6 +197,49 @@ export const TodosApiAxiosParamCreator = function (configuration?: Configuration
         },
         /**
          * 
+         * @summary Reorder a todo within its todo list
+         * @param {string} todoId Todo ID
+         * @param {ReorderTodoDto} reorderTodoDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        todoControllerReorderV1: async (todoId: string, reorderTodoDto: ReorderTodoDto, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'todoId' is not null or undefined
+            assertParamExists('todoControllerReorderV1', 'todoId', todoId)
+            // verify required parameter 'reorderTodoDto' is not null or undefined
+            assertParamExists('todoControllerReorderV1', 'reorderTodoDto', reorderTodoDto)
+            const localVarPath = `/api/v1/todos/{todoId}/reorder`
+                .replace('{todoId}', encodeURIComponent(String(todoId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearer required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(reorderTodoDto, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary Update a todo\'s completion state
          * @param {string} todoId Todo ID
          * @param {UpdateTodoCompletionDto} updateTodoCompletionDto 
@@ -300,6 +345,20 @@ export const TodosApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary Reorder a todo within its todo list
+         * @param {string} todoId Todo ID
+         * @param {ReorderTodoDto} reorderTodoDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async todoControllerReorderV1(todoId: string, reorderTodoDto: ReorderTodoDto, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TodoResponseDto>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.todoControllerReorderV1(todoId, reorderTodoDto, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TodosApi.todoControllerReorderV1']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
          * @summary Update a todo\'s completion state
          * @param {string} todoId Todo ID
          * @param {UpdateTodoCompletionDto} updateTodoCompletionDto 
@@ -363,6 +422,16 @@ export const TodosApiFactory = function (configuration?: Configuration, basePath
         },
         /**
          * 
+         * @summary Reorder a todo within its todo list
+         * @param {TodosApiTodoControllerReorderV1Request} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        todoControllerReorderV1(requestParameters: TodosApiTodoControllerReorderV1Request, options?: RawAxiosRequestConfig): AxiosPromise<TodoResponseDto> {
+            return localVarFp.todoControllerReorderV1(requestParameters.todoId, requestParameters.reorderTodoDto, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
          * @summary Update a todo\'s completion state
          * @param {TodosApiTodoControllerUpdateCompletionV1Request} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -416,6 +485,15 @@ export interface TodosApiInterface {
 
     /**
      * 
+     * @summary Reorder a todo within its todo list
+     * @param {TodosApiTodoControllerReorderV1Request} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    todoControllerReorderV1(requestParameters: TodosApiTodoControllerReorderV1Request, options?: RawAxiosRequestConfig): AxiosPromise<TodoResponseDto>;
+
+    /**
+     * 
      * @summary Update a todo\'s completion state
      * @param {TodosApiTodoControllerUpdateCompletionV1Request} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -465,6 +543,18 @@ export interface TodosApiTodoControllerFindForTodoListV1Request {
      * Todo list ID
      */
     readonly todoListId: string
+}
+
+/**
+ * Request parameters for todoControllerReorderV1 operation in TodosApi.
+ */
+export interface TodosApiTodoControllerReorderV1Request {
+    /**
+     * Todo ID
+     */
+    readonly todoId: string
+
+    readonly reorderTodoDto: ReorderTodoDto
 }
 
 /**
@@ -525,6 +615,17 @@ export class TodosApi extends BaseAPI implements TodosApiInterface {
      */
     public todoControllerFindForTodoListV1(requestParameters: TodosApiTodoControllerFindForTodoListV1Request, options?: RawAxiosRequestConfig) {
         return TodosApiFp(this.configuration).todoControllerFindForTodoListV1(requestParameters.todoListId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Reorder a todo within its todo list
+     * @param {TodosApiTodoControllerReorderV1Request} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public todoControllerReorderV1(requestParameters: TodosApiTodoControllerReorderV1Request, options?: RawAxiosRequestConfig) {
+        return TodosApiFp(this.configuration).todoControllerReorderV1(requestParameters.todoId, requestParameters.reorderTodoDto, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
