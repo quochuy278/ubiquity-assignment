@@ -26,9 +26,13 @@ export const ErrorCode = {
     InvalidRefreshToken: 'INVALID_REFRESH_TOKEN',
     ValidationError: 'VALIDATION_ERROR',
     InternalError: 'INTERNAL_ERROR',
+    NetworkError: 'NETWORK_ERROR',
+    TimeoutError: 'TIMEOUT_ERROR',
+    ServerError: 'SERVER_ERROR',
+    ServiceUnavailable: 'SERVICE_UNAVAILABLE',
+    UnknownError: 'UNKNOWN_ERROR',
 } as const;
 
 export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
-
 
 
