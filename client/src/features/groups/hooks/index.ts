@@ -1,14 +1,29 @@
 import {
   useCreateGroupMutation,
+  useCreateTodoMutation,
+  useCreateTodoListMutation,
   useGroupQuery,
   useGroupsQuery,
   useTodoListQuery,
   useTodoListsQuery,
   useTodosQuery,
+  useUpdateTodoCompletionMutation,
 } from '@/api/groups';
 
 export function useCreateGroup() {
   return useCreateGroupMutation();
+}
+
+export function useCreateTodoList(groupId: string) {
+  return useCreateTodoListMutation(groupId);
+}
+
+export function useCreateTodo(todoListId: string) {
+  return useCreateTodoMutation(todoListId);
+}
+
+export function useUpdateTodoCompletion(todoListId: string) {
+  return useUpdateTodoCompletionMutation(todoListId);
 }
 
 export function useGroups() {
