@@ -1,67 +1,36 @@
-import { type SyntheticEvent, useState } from 'react';
-import { getApiErrorMessage } from '@/api/errors';
+import { FormDialog } from '@/features/groups/components/form-dialog';
 import { useCreateTodoList } from '@/features/groups/hooks';
-import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { Button } from '@/shared/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/shared/components/ui/dialog';
-import { Field, FieldGroup, FieldLabel } from '@/shared/components/ui/field';
+import { Field, FieldLabel } from '@/shared/components/ui/field';
 import { Input } from '@/shared/components/ui/input';
+import { toast } from '@/shared/components/ui/toast';
 
 export function CreateTodoListDialog({ groupId }: { groupId: string }) {
-  const [open, setOpen] = useState(false);
   const createTodoList = useCreateTodoList(groupId);
 
-  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-
-    createTodoList.mutate(
-      { name: String(data.get('name')) },
-      { onSuccess: () => setOpen(false) },
-    );
+  const handleSubmit = async (data: FormData, close: () => void) => {
+    await createTodoList.mutateAsync({ name: String(data.get('name')) });
+    toast.add({ title: 'List created', type: 'success' });
+    close();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button type="button" />}>Create list</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create todo list</DialogTitle>
-          <DialogDescription>Add a new todo list to this group.</DialogDescription>
-        </DialogHeader>
-        <form id="create-todo-list-form" onSubmit={handleSubmit}>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="todo-list-name">Name</FieldLabel>
-              <Input id="todo-list-name" name="name" required autoFocus />
-            </Field>
-            {createTodoList.isError && (
-              <Alert variant="destructive">
-                <AlertDescription className="first-letter:uppercase">
-                  {getApiErrorMessage(createTodoList.error)}
-                </AlertDescription>
-              </Alert>
-            )}
-          </FieldGroup>
-        </form>
-        <DialogFooter>
-          <Button
-            type="submit"
-            form="create-todo-list-form"
-            disabled={createTodoList.isPending}
-          >
-            {createTodoList.isPending ? 'Creating list...' : 'Create list'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      title="Create todo list"
+      description="Add a new todo list to this group."
+      trigger={<Button type="button" />}
+      triggerLabel="Create list"
+      submitLabel="Create list"
+      pendingLabel="Creating list..."
+      isPending={createTodoList.isPending}
+      error={createTodoList.isError ? createTodoList.error : undefined}
+      onReset={createTodoList.reset}
+      onSubmit={handleSubmit}
+    >
+      <Field>
+        <FieldLabel htmlFor="todo-list-name">Name</FieldLabel>
+        <Input id="todo-list-name" name="name" required autoFocus />
+      </Field>
+    </FormDialog>
   );
 }

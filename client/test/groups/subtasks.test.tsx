@@ -5,6 +5,7 @@ import { subtasksApi } from '@/api/groups';
 import type { SubTaskResponseDto } from '@/api/generated';
 import { queryKeys } from '@/api/query-keys';
 import { TodoSubtasks } from '@/features/groups/components/todo-subtasks';
+import { toast } from '@/shared/components/ui/toast';
 
 const todoId = 'todo-1';
 const otherTodoId = 'todo-2';
@@ -68,7 +69,10 @@ async function openCreateForm(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('subtasks', () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    toast.close();
+    vi.restoreAllMocks();
+  });
 
   it('shows the add action without a large empty state and fetches once per Todo', async () => {
     const findSubtasks = vi
@@ -163,17 +167,15 @@ describe('subtasks', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('completes and reopens a subtask and derives progress from the query result', async () => {
+  it('completes a subtask, removes its action, and derives progress from the query result', async () => {
     const user = userEvent.setup();
-    const reopenedSubtask = { ...completedSubtask, completed: false };
     vi.spyOn(subtasksApi, 'subTaskControllerFindForTodoV1')
       .mockResolvedValueOnce({ data: [activeSubtask, secondSubtask, thirdSubtask] } as never)
-      .mockResolvedValueOnce({ data: [completedSubtask, secondSubtask, thirdSubtask] } as never)
-      .mockResolvedValue({ data: [reopenedSubtask, secondSubtask, thirdSubtask] } as never);
+      .mockResolvedValue({ data: [completedSubtask, secondSubtask, thirdSubtask] } as never);
     const updateCompletion = vi
       .spyOn(subtasksApi, 'subTaskControllerUpdateCompletionV1')
-      .mockResolvedValueOnce({ data: completedSubtask } as never)
-      .mockResolvedValueOnce({ data: reopenedSubtask } as never);
+      .mockResolvedValue({ data: completedSubtask } as never);
+    const addToast = vi.spyOn(toast, 'add');
     renderSubtasks();
 
     expect(await screen.findByText('0 of 3 completed')).toBeInTheDocument();
@@ -186,15 +188,10 @@ describe('subtasks', () => {
       updateSubTaskCompletionDto: { completed: true },
     });
     expect(await screen.findByText('1 of 3 completed')).toBeInTheDocument();
-    expect(within(activeRow).getByRole('button', { name: 'Reopen' })).toBeInTheDocument();
-
-    await user.click(within(activeRow).getByRole('button', { name: 'Reopen' }));
-    expect(updateCompletion).toHaveBeenLastCalledWith({
-      subtaskId: activeSubtask.id,
-      updateSubTaskCompletionDto: { completed: false },
-    });
-    expect(await screen.findByText('0 of 3 completed')).toBeInTheDocument();
-    expect(within(activeRow).getByRole('button', { name: 'Complete' })).toBeInTheDocument();
+    expect(within(activeRow).getByText('Completed')).toBeInTheDocument();
+    expect(within(activeRow).queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument();
+    expect(within(activeRow).queryByRole('button', { name: 'Reopen' })).not.toBeInTheDocument();
+    expect(addToast).toHaveBeenCalledWith({ title: 'Subtask completed', type: 'success' });
   });
 
   it('preserves confirmed completion state and shows an error when update fails', async () => {
@@ -207,15 +204,21 @@ describe('subtasks', () => {
     );
     const queryClient = renderSubtasks();
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+    const addToast = vi.spyOn(toast, 'add');
 
     const row = (await screen.findByText(activeSubtask.title)).closest<HTMLElement>('li');
     if (!row) throw new Error('Subtask row not found');
     await user.click(within(row).getByRole('button', { name: 'Complete' }));
 
-    expect(
-      await within(row).findByText('Something went wrong. Please try again.'),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith({
+        title: 'Something went wrong. Please try again.',
+        type: 'error',
+        priority: 'high',
+      }),
+    );
     expect(within(row).getByRole('button', { name: 'Complete' })).toBeInTheDocument();
+    expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
     expect(queryClient.getQueryData(queryKeys.subtasks.forTodo(todoId))).toEqual([activeSubtask]);
     expect(invalidateQueries).not.toHaveBeenCalled();
   });
@@ -254,5 +257,8 @@ describe('subtasks', () => {
       queryKey: queryKeys.subtasks.forTodo(todoId),
       exact: true,
     });
+    expect(within(firstRow).getByText('Completed')).toBeInTheDocument();
+    expect(within(firstRow).queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument();
+    expect(within(firstRow).queryByRole('button', { name: 'Reopen' })).not.toBeInTheDocument();
   });
 });

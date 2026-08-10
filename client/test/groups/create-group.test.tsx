@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { groupsApi } from '@/api/groups';
@@ -61,7 +61,9 @@ describe('create group', () => {
     });
     expect(await screen.findByRole('link', { name: /Product team/ })).toBeInTheDocument();
     expect(queryClient.getQueryData(queryKeys.groups.all)).toEqual([createdGroup]);
-    expect(queryClient.getQueryData(queryKeys.groups.detail(createdGroup.id))).toEqual(createdGroup);
+    expect(queryClient.getQueryData(queryKeys.groups.detail(createdGroup.id))).toEqual(
+      createdGroup,
+    );
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: queryKeys.groups.all,
       exact: true,
@@ -71,10 +73,13 @@ describe('create group', () => {
 
   it('keeps the form open and shows an API error when creation fails', async () => {
     const user = userEvent.setup();
-    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(groupsApi, 'groupControllerFindForUserV1')
+      .mockResolvedValueOnce({ data: [] } as never)
+      .mockResolvedValue({ data: [createdGroup] } as never);
     const createGroup = vi
       .spyOn(groupsApi, 'groupControllerCreateV1')
-      .mockRejectedValue(new Error('Create failed'));
+      .mockRejectedValueOnce(new Error('Create failed'))
+      .mockResolvedValueOnce({ data: createdGroup } as never);
     renderGroupsPage();
 
     await openAndFillCreateGroupForm(user);
@@ -83,6 +88,10 @@ describe('create group', () => {
     expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(createGroup).toHaveBeenCalledOnce();
+
+    await user.click(screen.getByRole('button', { name: 'Create group' }));
+    expect(await screen.findByRole('link', { name: /Product team/ })).toBeInTheDocument();
+    expect(createGroup).toHaveBeenCalledTimes(2);
   });
 
   it('shows a pending state and prevents duplicate submission', async () => {
@@ -100,11 +109,15 @@ describe('create group', () => {
     renderGroupsPage();
 
     await openAndFillCreateGroupForm(user);
-    await user.click(screen.getByRole('button', { name: 'Create group' }));
+    const form = screen.getByRole('dialog').querySelector('form');
+    if (!form) throw new Error('Create group form not found');
+    act(() => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
 
     const pendingButton = await screen.findByRole('button', { name: 'Creating group...' });
     expect(pendingButton).toBeDisabled();
-    await user.click(pendingButton);
     expect(createGroup).toHaveBeenCalledOnce();
 
     resolveCreate({ data: createdGroup });

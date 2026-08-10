@@ -138,7 +138,7 @@ describe('create todo', () => {
     });
     expect(await screen.findByText(createdTodo.title)).toBeInTheDocument();
     expect(screen.getByText(createdTodo.description ?? '')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument();
     expect(screen.queryByText('10')).not.toBeInTheDocument();
     expect(queryClient.getQueryData(queryKeys.todos.forList(todoListId))).toEqual([
       existingTodo,
