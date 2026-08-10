@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { groupsApi, todoListsApi, todosApi } from '@/api/groups';
+import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups';
 import {
   GroupType,
   type GroupResponseDto,
@@ -76,10 +76,7 @@ function renderTodoListPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[`/groups/${groupId}/lists/${todoListId}`]}>
         <Routes>
-          <Route
-            path="/groups/:groupId/lists/:todoListId"
-            element={<TodoListPage />}
-          />
+          <Route path="/groups/:groupId/lists/:todoListId" element={<TodoListPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -93,6 +90,7 @@ function mockTodoListQuery() {
   vi.spyOn(todoListsApi, 'todoListControllerFindByIdV1').mockResolvedValue({
     data: todoList,
   } as never);
+  vi.spyOn(subtasksApi, 'subTaskControllerFindForTodoV1').mockResolvedValue({ data: [] } as never);
 }
 
 async function getTodoCard(title: string) {
@@ -140,9 +138,7 @@ describe('todo completion', () => {
     });
     await waitFor(() => expect(within(card).getByText('Completed')).toBeInTheDocument());
     expect(within(card).getByRole('button', { name: 'Reopen' })).toBeInTheDocument();
-    expect(queryClient.getQueryData(queryKeys.todos.forList(todoListId))).toEqual([
-      completedTodo,
-    ]);
+    expect(queryClient.getQueryData(queryKeys.todos.forList(todoListId))).toEqual([completedTodo]);
     expect(invalidateQueries).toHaveBeenCalledOnce();
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: queryKeys.todos.forList(todoListId),
@@ -204,15 +200,14 @@ describe('todo completion', () => {
     vi.spyOn(todosApi, 'todoControllerFindForTodoListV1')
       .mockResolvedValueOnce({ data: [activeTodo, secondActiveTodo] } as never)
       .mockResolvedValue({ data: [completedTodo, secondActiveTodo] } as never);
-    const updateCompletion = vi.spyOn(
-      todosApi,
-      'todoControllerUpdateCompletionV1',
-    ).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveUpdate = resolve as typeof resolveUpdate;
-        }) as never,
-    );
+    const updateCompletion = vi
+      .spyOn(todosApi, 'todoControllerUpdateCompletionV1')
+      .mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveUpdate = resolve as typeof resolveUpdate;
+          }) as never,
+      );
     renderTodoListPage();
 
     const firstCard = await getTodoCard(activeTodo.title);

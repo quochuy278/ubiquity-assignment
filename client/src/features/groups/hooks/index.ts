@@ -1,12 +1,15 @@
 import {
   useCreateGroupMutation,
+  useCreateSubtaskMutation,
   useCreateTodoMutation,
   useCreateTodoListMutation,
   useGroupQuery,
   useGroupsQuery,
+  useSubtasksQuery,
   useTodoListQuery,
   useTodoListsQuery,
   useTodosQuery,
+  useUpdateSubtaskCompletionMutation,
   useUpdateTodoCompletionMutation,
 } from '@/api/groups';
 
@@ -20,6 +23,14 @@ export function useCreateTodoList(groupId: string) {
 
 export function useCreateTodo(todoListId: string) {
   return useCreateTodoMutation(todoListId);
+}
+
+export function useCreateSubtask(todoId: string) {
+  return useCreateSubtaskMutation(todoId);
+}
+
+export function useUpdateSubtaskCompletion(todoId: string) {
+  return useUpdateSubtaskCompletionMutation(todoId);
 }
 
 export function useUpdateTodoCompletion(todoListId: string) {
@@ -44,4 +55,8 @@ export function useTodoList(todoListId: string) {
 
 export function useTodos(todoListId: string) {
   return useTodosQuery(todoListId);
+}
+
+export function useSubtasks(todoId: string) {
+  return useSubtasksQuery(todoId);
 }
