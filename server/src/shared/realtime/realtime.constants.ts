@@ -6,4 +6,9 @@ export enum TodoListRealtimeEventType {
   SUBTASK_COMPLETION_CHANGED = 'SUBTASK_COMPLETION_CHANGED',
 }
 
+export enum GroupRealtimeEventType {
+  TODO_LIST_CREATED = 'TODO_LIST_CREATED',
+}
+
+export const groupChannelName = (groupId: string): string => `group:${groupId}`;
 export const todoListChannelName = (todoListId: string): string => `todo-list:${todoListId}`;

@@ -3,8 +3,12 @@ import { ErrorCode } from '../../../common/exception/error-code';
 import { GlobalException } from '../../../common/exception/global.exception';
 import { ApplicationLoggerService } from '../../../common/logger/logger.service';
 import { PrismaService } from '../../../shared/database/prisma/prisma.service';
+import { GroupRealtimeEventType } from '../../../shared/realtime/realtime.constants';
+import { RealtimePublisher } from '../../../shared/realtime/realtime.publisher';
+import type { GroupRealtimeEvent } from '../../../shared/realtime/realtime.types';
 import { ActivityEntityType, ActivityType } from '../activity/activity.constants';
 import { ActivityService } from '../activity/activity.service';
+import { GroupType } from '../group/group.constants';
 import { GroupService } from '../group/group.service';
 import type { CreateTodoListDto } from './dto/create-todo-list.dto';
 import { TodoListRepository } from './repositories/todo-list.repository';
@@ -18,10 +22,11 @@ export class TodoListService {
     private readonly groups: GroupService,
     private readonly activities: ActivityService,
     private readonly logger: ApplicationLoggerService,
+    private readonly realtime: RealtimePublisher,
   ) {}
 
   async create(userId: string, groupId: string, input: CreateTodoListDto): Promise<TodoListResult> {
-    await this.groups.findById(userId, groupId);
+    const group = await this.groups.findById(userId, groupId);
 
     const todoList = await this.prisma.$transaction(async (transaction) => {
       const created = await this.todoLists.createWithTransaction(groupId, input, transaction);
@@ -37,6 +42,14 @@ export class TodoListService {
       );
       return created;
     });
+
+    if (group.type === GroupType.SHARED) {
+      await this.publishRealtimeEvent({
+        type: GroupRealtimeEventType.TODO_LIST_CREATED,
+        groupId,
+        todoListId: todoList.id,
+      });
+    }
 
     this.logger.log(
       'Todo list created',
@@ -71,6 +84,23 @@ export class TodoListService {
     }
 
     return todoList;
+  }
+
+  private async publishRealtimeEvent(event: GroupRealtimeEvent): Promise<void> {
+    try {
+      await this.realtime.publishGroupEvent(event);
+    } catch (error: unknown) {
+      this.logger.warn(
+        'Realtime publication failed after todo list mutation persisted',
+        {
+          eventType: event.type,
+          groupId: event.groupId,
+          todoListId: event.todoListId,
+          errorMessage: error instanceof Error ? error.message : 'Unknown publication error',
+        },
+        TodoListService.name,
+      );
+    }
   }
 
   private notFound(todoListId: string, userId: string): GlobalException {

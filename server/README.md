@@ -299,16 +299,17 @@ Realtime publication does not create additional ActivityEvent rows or expose Act
 
 ## Server-side Realtime Collaboration
 
-The server provides the transport half of TodoList collaboration. PostgreSQL and the REST API
-remain authoritative: a Todo or Subtask mutation is validated and persisted first, including any
-transactional ActivityEvent, and only then is a small notification published through Ably. The
-frontend subscription is not implemented yet.
+The server publishes ephemeral collaboration notifications after TodoList, Todo, or Subtask
+mutations persist. PostgreSQL and the REST API remain authoritative, and the client treats each
+notification as a signal to refetch the relevant query.
 
-Each TodoList has exactly one channel named `todo-list:{todoListId}`. This server does not expose a
-realtime token endpoint; client-side Ably configuration is handled directly by the frontend setup.
+Each SHARED Group has a `group:{groupId}` channel for TodoList-level changes. Each TodoList has a
+`todo-list:{todoListId}` channel for Todo and Subtask changes. This server does not expose a realtime
+token endpoint; client-side Ably configuration is handled directly by the frontend setup.
 
 The current application-owned event contract is intentionally limited to:
 
+- `TODO_LIST_CREATED`: `{ type, groupId, todoListId }`
 - `TODO_CREATED`: `{ type, todoListId, todoId }`
 - `TODO_COMPLETION_CHANGED`: `{ type, todoListId, todoId }`
 - `TODO_REORDERED`: `{ type, todoListId, todoId }`

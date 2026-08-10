@@ -9,6 +9,8 @@ import { ErrorCode } from '../../../../src/common/exception/error-code';
 import { GlobalException } from '../../../../src/common/exception/global.exception';
 import type { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
 import type { PrismaService } from '../../../../src/shared/database/prisma/prisma.service';
+import { GroupRealtimeEventType } from '../../../../src/shared/realtime/realtime.constants';
+import type { RealtimePublisher } from '../../../../src/shared/realtime/realtime.publisher';
 
 describe('Todo list use-case orchestration', () => {
   const todoList: TodoListResult = {
@@ -32,6 +34,8 @@ describe('Todo list use-case orchestration', () => {
   const findByGroupId = jest.fn();
   const findTodoListById = jest.fn();
   const log = jest.fn();
+  const warn = jest.fn();
+  const publishGroupEvent = jest.fn();
   const groups = { findById: findGroupById } as unknown as GroupService;
   const todoLists = {
     createWithTransaction: createTodoList,
@@ -40,8 +44,9 @@ describe('Todo list use-case orchestration', () => {
   } as unknown as TodoListRepository;
   const prisma = { $transaction: runTransaction } as unknown as PrismaService;
   const activities = { record: recordActivity } as unknown as ActivityService;
-  const logger = { log } as unknown as ApplicationLoggerService;
-  const service = new TodoListService(prisma, todoLists, groups, activities, logger);
+  const logger = { log, warn } as unknown as ApplicationLoggerService;
+  const realtime = { publishGroupEvent } as unknown as RealtimePublisher;
+  const service = new TodoListService(prisma, todoLists, groups, activities, logger, realtime);
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -49,7 +54,8 @@ describe('Todo list use-case orchestration', () => {
       (callback: (client: typeof transactionClient) => Promise<unknown>) =>
         callback(transactionClient),
     );
-    findGroupById.mockResolvedValue({ id: 'group-1' });
+    findGroupById.mockResolvedValue({ id: 'group-1', type: 'SHARED' });
+    publishGroupEvent.mockResolvedValue(undefined);
   });
 
   it('validates group access through GroupService before creating a todo list', async () => {
@@ -76,6 +82,40 @@ describe('Todo list use-case orchestration', () => {
     expect(log).toHaveBeenCalledWith(
       'Todo list created',
       { todoListId: 'list-1', groupId: 'group-1', userId: 'user-1' },
+      TodoListService.name,
+    );
+    expect(publishGroupEvent).toHaveBeenCalledWith({
+      type: GroupRealtimeEventType.TODO_LIST_CREATED,
+      groupId: 'group-1',
+      todoListId: 'list-1',
+    });
+  });
+
+  it('does not publish TodoList creation for a PERSONAL Group', async () => {
+    findGroupById.mockResolvedValue({ id: 'group-1', type: 'PERSONAL' });
+    createTodoList.mockResolvedValue(todoList);
+
+    await service.create('user-1', 'group-1', { name: 'Shopping' });
+
+    expect(publishGroupEvent).not.toHaveBeenCalled();
+  });
+
+  it('keeps a persisted TodoList successful when realtime publication fails', async () => {
+    createTodoList.mockResolvedValue(todoList);
+    publishGroupEvent.mockRejectedValue(new Error('Ably unavailable'));
+
+    await expect(service.create('user-1', 'group-1', { name: 'Shopping' })).resolves.toEqual(
+      todoList,
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      'Realtime publication failed after todo list mutation persisted',
+      {
+        eventType: GroupRealtimeEventType.TODO_LIST_CREATED,
+        groupId: 'group-1',
+        todoListId: 'list-1',
+        errorMessage: 'Ably unavailable',
+      },
       TodoListService.name,
     );
   });

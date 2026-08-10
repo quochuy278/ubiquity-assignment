@@ -1,4 +1,10 @@
-import type { TodoListRealtimeEventType } from './realtime.constants';
+import type { GroupRealtimeEventType, TodoListRealtimeEventType } from './realtime.constants';
+
+export interface GroupRealtimeEvent {
+  type: GroupRealtimeEventType.TODO_LIST_CREATED;
+  groupId: string;
+  todoListId: string;
+}
 
 export interface TodoRealtimeEvent {
   type:
