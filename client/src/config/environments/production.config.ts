@@ -1,3 +1,4 @@
+import { getApiTimeoutMs } from '../api-timeout';
 import type { ClientConfig } from '../configuration.interface';
 
 export default (): ClientConfig => {
@@ -13,6 +14,7 @@ export default (): ClientConfig => {
     },
     api: {
       baseUrl: apiBaseUrl,
+      timeoutMs: getApiTimeoutMs(import.meta.env.VITE_API_TIMEOUT_MS),
     },
   };
 };

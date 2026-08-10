@@ -6,5 +6,6 @@ export interface ClientConfig {
   };
   api: {
     baseUrl: string;
+    timeoutMs: number;
   };
 }
