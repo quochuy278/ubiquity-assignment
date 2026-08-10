@@ -8,6 +8,7 @@ const developmentEnvironmentSchema = Joi.object({
     .default('development-only-access-secret-change-me'),
   DATABASE_URL: Joi.string().required(),
   DIRECT_URL: Joi.string().required(),
+  ABLY_KEY: Joi.string().required(),
 }).unknown(true);
 
 export default (): ApplicationConfig => {
@@ -34,6 +35,9 @@ export default (): ApplicationConfig => {
       connectionTimeoutMillis: 5_000,
       idleTimeoutMillis: 10_000,
       maxConnections: 5,
+    },
+    realtime: {
+      ablyKey: value.ABLY_KEY as string,
     },
   };
 };

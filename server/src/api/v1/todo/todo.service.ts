@@ -4,6 +4,9 @@ import { ErrorCode } from '../../../common/exception/error-code';
 import { GlobalException } from '../../../common/exception/global.exception';
 import { ApplicationLoggerService } from '../../../common/logger/logger.service';
 import { PrismaService } from '../../../shared/database/prisma/prisma.service';
+import { TodoListRealtimeEventType } from '../../../shared/realtime/realtime.constants';
+import { RealtimePublisher } from '../../../shared/realtime/realtime.publisher';
+import type { TodoListRealtimeEvent } from '../../../shared/realtime/realtime.types';
 import { now } from '../../../shared/utils/time.utilities';
 import { ActivityEntityType, ActivityType } from '../activity/activity.constants';
 import { ActivityService } from '../activity/activity.service';
@@ -23,6 +26,7 @@ export class TodoService {
     private readonly todoLists: TodoListService,
     private readonly activities: ActivityService,
     private readonly logger: ApplicationLoggerService,
+    private readonly realtime: RealtimePublisher,
   ) {}
 
   async create(userId: string, todoListId: string, input: CreateTodoDto): Promise<TodoResult> {
@@ -46,6 +50,12 @@ export class TodoService {
         transaction,
       );
       return created;
+    });
+
+    await this.publishRealtimeEvent({
+      type: TodoListRealtimeEventType.TODO_CREATED,
+      todoListId,
+      todoId: todo.id,
     });
 
     this.logger.log('Todo created', { todoId: todo.id, todoListId, userId }, TodoService.name);
@@ -72,7 +82,7 @@ export class TodoService {
     const { todo, groupId } = await this.findByIdWithGroup(userId, todoId);
     const completedAt = input.completed ? now().toDate() : null;
     const status = input.completed ? TodoStatus.COMPLETED : TodoStatus.ACTIVE;
-    const updatedTodo = await this.prisma.$transaction(async (transaction) => {
+    const transition = await this.prisma.$transaction(async (transaction) => {
       const transition = await this.todos.updateCompletion(
         todo.id,
         {
@@ -85,6 +95,7 @@ export class TodoService {
       if (!transition.todo) {
         throw this.notFound(todoId, userId);
       }
+      const updatedTodo = transition.todo;
       if (transition.transitioned) {
         await this.activities.record(
           {
@@ -92,13 +103,21 @@ export class TodoService {
             actorId: userId,
             type: input.completed ? ActivityType.TODO_COMPLETED : ActivityType.TODO_UNCOMPLETED,
             entityType: ActivityEntityType.TODO,
-            entityId: transition.todo.id,
+            entityId: updatedTodo.id,
           },
           transaction,
         );
       }
-      return transition.todo;
+      return { todo: updatedTodo, transitioned: transition.transitioned };
     });
+
+    if (transition.transitioned) {
+      await this.publishRealtimeEvent({
+        type: TodoListRealtimeEventType.TODO_COMPLETION_CHANGED,
+        todoListId: todo.todoListId,
+        todoId: transition.todo.id,
+      });
+    }
 
     this.logger.log(
       'Todo completion updated',
@@ -106,7 +125,7 @@ export class TodoService {
       TodoService.name,
     );
 
-    return updatedTodo;
+    return transition.todo;
   }
 
   async reorder(userId: string, todoId: string, input: ReorderTodoDto): Promise<TodoResult> {
@@ -145,6 +164,11 @@ export class TodoService {
     });
 
     if (transition.kind === 'reordered') {
+      await this.publishRealtimeEvent({
+        type: TodoListRealtimeEventType.TODO_REORDERED,
+        todoListId: todo.todoListId,
+        todoId: transition.todo.id,
+      });
       this.logger.log(
         'Todo reordered',
         { todoId, todoListId: todo.todoListId, userId, beforeTodoId: input.beforeTodoId },
@@ -209,6 +233,23 @@ export class TodoService {
         ? { dueDate: input.dueDate === null ? null : dayjs(input.dueDate).toDate() }
         : {}),
     };
+  }
+
+  private async publishRealtimeEvent(event: TodoListRealtimeEvent): Promise<void> {
+    try {
+      await this.realtime.publishTodoListEvent(event);
+    } catch (error: unknown) {
+      this.logger.warn(
+        'Realtime publication failed after todo mutation persisted',
+        {
+          eventType: event.type,
+          todoListId: event.todoListId,
+          todoId: event.todoId,
+          errorMessage: error instanceof Error ? error.message : 'Unknown publication error',
+        },
+        TodoService.name,
+      );
+    }
   }
 
   private notFound(todoId: string, userId: string): GlobalException {

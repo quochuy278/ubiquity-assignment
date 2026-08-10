@@ -8,6 +8,7 @@ import { RequestContextModule } from '../common/request-context/request-context.
 import { RequestIdMiddleware } from '../common/request-context/request-id.middleware';
 import configuration from '../shared/config/configuration';
 import { PrismaModule } from '../shared/database/prisma/prisma.module';
+import { RealtimeModule } from '../shared/realtime/realtime.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -26,6 +27,7 @@ const ENV_FILE_PATHS =
     LoggerModule,
     RequestContextModule,
     PrismaModule,
+    RealtimeModule,
     ...V1_MODULES,
   ],
   controllers: [AppController],

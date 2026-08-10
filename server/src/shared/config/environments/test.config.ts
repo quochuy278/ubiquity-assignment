@@ -6,6 +6,7 @@ const testEnvironmentSchema = Joi.object({
   E2E_AUTH_ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
   E2E_DATABASE_URL: Joi.string().required(),
   E2E_DIRECT_URL: Joi.string().required(),
+  ABLY_KEY: Joi.string().default('test-app.test-key:test-secret'),
 }).unknown(true);
 
 export default (): ApplicationConfig => {
@@ -32,6 +33,9 @@ export default (): ApplicationConfig => {
       connectionTimeoutMillis: 5_000,
       idleTimeoutMillis: 10_000,
       maxConnections: 5,
+    },
+    realtime: {
+      ablyKey: value.ABLY_KEY as string,
     },
   };
 };
