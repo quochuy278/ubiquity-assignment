@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { groupsApi, todoListsApi, todosApi } from '@/api/groups/api';
+import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups/api';
 import type {
   CreateGroupDto,
+  CreateSubTaskDto,
   CreateTodoDto,
   CreateTodoListDto,
   GroupResponseDto,
+  SubTaskResponseDto,
+  SubtasksApiSubTaskControllerUpdateCompletionV1Request,
   TodoResponseDto,
   TodoListResponseDto,
   TodosApiTodoControllerUpdateCompletionV1Request,
@@ -95,10 +98,7 @@ export function useCreateTodoMutation(todoListId: string) {
     onSuccess: async (todo) => {
       queryClient.setQueryData<TodoResponseDto[]>(
         queryKeys.todos.forList(todoListId),
-        (todos = []) => [
-          ...todos.filter((currentTodo) => currentTodo.id !== todo.id),
-          todo,
-        ],
+        (todos = []) => [...todos.filter((currentTodo) => currentTodo.id !== todo.id), todo],
       );
       await queryClient.invalidateQueries({
         queryKey: queryKeys.todos.forList(todoListId),
@@ -122,6 +122,57 @@ export function useUpdateTodoCompletionMutation(todoListId: string) {
       );
       await queryClient.invalidateQueries({
         queryKey: queryKeys.todos.forList(todoListId),
+        exact: true,
+      });
+    },
+  });
+}
+
+export function useSubtasksQuery(todoId: string) {
+  return useQuery({
+    queryKey: queryKeys.subtasks.forTodo(todoId),
+    queryFn: async () => (await subtasksApi.subTaskControllerFindForTodoV1({ todoId })).data,
+  });
+}
+
+export function useCreateSubtaskMutation(todoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (createSubTaskDto: CreateSubTaskDto) =>
+      (await subtasksApi.subTaskControllerCreateV1({ todoId, createSubTaskDto })).data,
+    onSuccess: async (subtask) => {
+      queryClient.setQueryData<SubTaskResponseDto[]>(
+        queryKeys.subtasks.forTodo(todoId),
+        (subtasks = []) => [
+          ...subtasks.filter((currentSubtask) => currentSubtask.id !== subtask.id),
+          subtask,
+        ],
+      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.subtasks.forTodo(todoId),
+        exact: true,
+      });
+    },
+  });
+}
+
+export function useUpdateSubtaskCompletionMutation(todoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: SubtasksApiSubTaskControllerUpdateCompletionV1Request) =>
+      (await subtasksApi.subTaskControllerUpdateCompletionV1(request)).data,
+    onSuccess: async (subtask) => {
+      queryClient.setQueryData<SubTaskResponseDto[]>(
+        queryKeys.subtasks.forTodo(todoId),
+        (subtasks = []) =>
+          subtasks.map((currentSubtask) =>
+            currentSubtask.id === subtask.id ? subtask : currentSubtask,
+          ),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.subtasks.forTodo(todoId),
         exact: true,
       });
     },

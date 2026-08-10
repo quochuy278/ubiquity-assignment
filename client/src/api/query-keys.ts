@@ -13,4 +13,7 @@ export const queryKeys = {
   todos: {
     forList: (todoListId: string) => ['todo-lists', todoListId, 'todos'] as const,
   },
+  subtasks: {
+    forTodo: (todoId: string) => ['todos', todoId, 'subtasks'] as const,
+  },
 };

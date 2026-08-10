@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { groupsApi, todoListsApi, todosApi } from '@/api/groups';
+import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups';
 import {
   GroupType,
   type GroupResponseDto,
@@ -77,10 +77,7 @@ function renderTodoListPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[`/groups/${groupId}/lists/${todoListId}`]}>
         <Routes>
-          <Route
-            path="/groups/:groupId/lists/:todoListId"
-            element={<TodoListPage />}
-          />
+          <Route path="/groups/:groupId/lists/:todoListId" element={<TodoListPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -94,6 +91,7 @@ function mockTodoListQuery() {
   vi.spyOn(todoListsApi, 'todoListControllerFindByIdV1').mockResolvedValue({
     data: todoList,
   } as never);
+  vi.spyOn(subtasksApi, 'subTaskControllerFindForTodoV1').mockResolvedValue({ data: [] } as never);
 }
 
 async function openAndFillCreateTodoForm(user: ReturnType<typeof userEvent.setup>) {
