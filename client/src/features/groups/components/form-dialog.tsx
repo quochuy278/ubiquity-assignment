@@ -76,7 +76,7 @@ export function FormDialog({
     try {
       await onSubmit(new FormData(event.currentTarget), close);
     } catch {
-      // The mutation state supplies the contextual form error.
+      return;
     } finally {
       submitLockRef.current = false;
       setIsLocallyPending(false);

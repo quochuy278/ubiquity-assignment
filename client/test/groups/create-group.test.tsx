@@ -60,6 +60,8 @@ describe('create group', () => {
       createGroupDto: { name: createdGroup.name, type: GroupType.Shared },
     });
     expect(await screen.findByRole('link', { name: /Product team/ })).toBeInTheDocument();
+    expect(screen.getByText('Shared')).toBeInTheDocument();
+    expect(screen.queryByText(GroupType.Shared)).not.toBeInTheDocument();
     expect(queryClient.getQueryData(queryKeys.groups.all)).toEqual([createdGroup]);
     expect(queryClient.getQueryData(queryKeys.groups.detail(createdGroup.id))).toEqual(
       createdGroup,
@@ -92,6 +94,16 @@ describe('create group', () => {
     await user.click(screen.getByRole('button', { name: 'Create group' }));
     expect(await screen.findByRole('link', { name: /Product team/ })).toBeInTheDocument();
     expect(createGroup).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not impose a name length limit absent from the API contract', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({ data: [] } as never);
+    renderGroupsPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Create group' }));
+
+    expect(screen.getByLabelText('Name')).not.toHaveAttribute('maxlength');
   });
 
   it('shows a pending state and prevents duplicate submission', async () => {

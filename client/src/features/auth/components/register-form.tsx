@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react';
+import { type SyntheticEvent, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthError } from '@/features/auth/components/auth-error';
 import { cn } from '@/lib/utils';
@@ -12,12 +12,17 @@ import {
 } from '@/shared/components/ui/card';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/shared/components/ui/field';
 import { Input } from '@/shared/components/ui/input';
+import { Spinner } from '@/shared/components/ui/spinner';
 
 interface RegisterFormProps extends React.ComponentProps<'div'> {
   error: unknown;
   isError: boolean;
   isPending: boolean;
-  onRegister: (values: { displayName: string; email: string; password: string }) => void;
+  onRegister: (values: {
+    displayName: string;
+    email: string;
+    password: string;
+  }) => Promise<unknown>;
 }
 
 export function RegisterForm({
@@ -28,15 +33,30 @@ export function RegisterForm({
   onRegister,
   ...props
 }: RegisterFormProps) {
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
+  const submitLockRef = useRef(false);
+  const [isLocallyPending, setIsLocallyPending] = useState(false);
+  const submitPending = isPending || isLocallyPending;
 
-    onRegister({
-      displayName: String(data.get('displayName')),
-      email: String(data.get('email')),
-      password: String(data.get('password')),
-    });
+  const handleSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitLockRef.current) return;
+
+    const data = new FormData(event.currentTarget);
+    submitLockRef.current = true;
+    setIsLocallyPending(true);
+
+    try {
+      await onRegister({
+        displayName: String(data.get('displayName')),
+        email: String(data.get('email')),
+        password: String(data.get('password')),
+      });
+    } catch {
+      return;
+    } finally {
+      submitLockRef.current = false;
+      setIsLocallyPending(false);
+    }
   };
 
   return (
@@ -69,6 +89,7 @@ export function RegisterForm({
                   type="email"
                   autoComplete="email"
                   placeholder="m@example.com"
+                  maxLength={320}
                   required
                 />
               </Field>
@@ -86,8 +107,15 @@ export function RegisterForm({
               </Field>
               {isError && <AuthError error={error} />}
               <Field>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? 'Creating account...' : 'Create account'}
+                <Button type="submit" disabled={submitPending} aria-busy={submitPending}>
+                  {submitPending ? (
+                    <>
+                      <Spinner aria-hidden="true" />
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create account'
+                  )}
                 </Button>
                 <FieldDescription className="text-center">
                   Already registered? <Link to="/login">Sign in</Link>

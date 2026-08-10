@@ -16,7 +16,7 @@ export function RegisterPage() {
           error={register.error}
           isError={register.isError}
           isPending={register.isPending}
-          onRegister={register.mutate}
+          onRegister={register.mutateAsync}
         />
       </div>
     </main>

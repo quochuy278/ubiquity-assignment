@@ -1,8 +1,8 @@
 import { getApiErrorMessage } from '@/api/errors';
+import { SafeButton } from '@/shared/components/safe-button';
 import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert';
-import { Button } from '@/shared/components/ui/button';
 
-export function ApiError({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+export function ApiError({ error, onRetry }: { error: unknown; onRetry?: () => Promise<unknown> }) {
   return (
     <div className="mx-auto flex min-h-48 max-w-xl items-center p-6">
       <Alert variant="destructive">
@@ -10,9 +10,9 @@ export function ApiError({ error, onRetry }: { error: unknown; onRetry?: () => v
         <AlertDescription className="space-y-3">
           <p className="first-letter:uppercase">{getApiErrorMessage(error)}</p>
           {onRetry && (
-            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+            <SafeButton variant="outline" size="sm" pendingText="Retrying..." onAction={onRetry}>
               Try again
-            </Button>
+            </SafeButton>
           )}
         </AlertDescription>
       </Alert>

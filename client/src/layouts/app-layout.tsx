@@ -1,11 +1,14 @@
 import { ListTodoIcon, UsersIcon } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useCurrentUser, useLogout } from '@/features/auth';
-import { Button } from '@/shared/components/ui/button';
+import { SafeButton } from '@/shared/components/safe-button';
 
 export function AppLayout() {
   const currentUser = useCurrentUser();
   const logout = useLogout();
+  const handleLogout = async () => {
+    await logout.mutateAsync().catch(() => undefined);
+  };
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -31,15 +34,15 @@ export function AppLayout() {
           <span className="hidden text-muted-foreground text-sm sm:inline">
             {currentUser.data?.displayName}
           </span>
-          <Button
-            type="button"
+          <SafeButton
             variant="outline"
             size="sm"
-            disabled={logout.isPending}
-            onClick={() => logout.mutate()}
+            pending={logout.isPending}
+            pendingText="Signing out..."
+            onAction={handleLogout}
           >
-            {logout.isPending ? 'Signing out...' : 'Sign out'}
-          </Button>
+            Sign out
+          </SafeButton>
         </div>
       </header>
       <main className="mx-auto max-w-5xl p-4 sm:p-6">

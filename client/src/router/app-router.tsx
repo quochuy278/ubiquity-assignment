@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginPage, RegisterPage } from '@/features/auth';
-import { GroupPage, GroupsPage, TodoListPage } from '@/features/groups';
+import { GroupPage } from '@/features/groups/pages/group-page';
+import { GroupsPage } from '@/features/groups/pages/groups-page';
+import { TodoListPage } from '@/features/groups/pages/todo-list-page';
 import { AppLayout } from '@/layouts/app-layout';
 import { ProtectedRoute, PublicOnlyRoute } from '@/router/route-guards';
 

@@ -3,8 +3,8 @@ import { CircleCheckIcon, CircleIcon } from 'lucide-react';
 import { CreateSubtaskDialog } from '@/features/groups/components/create-subtask-dialog';
 import { SubtaskCompletionControl } from '@/features/groups/components/subtask-completion-control';
 import { useSubtasks } from '@/features/groups/hooks';
+import { SafeButton } from '@/shared/components/safe-button';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
-import { Button } from '@/shared/components/ui/button';
 
 export function TodoSubtasks({ todoId }: { todoId: string }) {
   const subtasks = useSubtasks(todoId);
@@ -26,9 +26,15 @@ export function TodoSubtasks({ todoId }: { todoId: string }) {
         <Alert variant="destructive">
           <AlertDescription className="flex items-center justify-between gap-3">
             <span className="first-letter:uppercase">{getApiErrorMessage(subtasks.error)}</span>
-            <Button type="button" variant="outline" size="xs" onClick={() => subtasks.refetch()}>
+            <SafeButton
+              variant="outline"
+              size="xs"
+              pending={subtasks.isFetching}
+              pendingText="Retrying..."
+              onAction={() => subtasks.refetch()}
+            >
               Retry
-            </Button>
+            </SafeButton>
           </AlertDescription>
         </Alert>
       )}

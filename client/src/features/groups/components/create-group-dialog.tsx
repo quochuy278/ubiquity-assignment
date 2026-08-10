@@ -34,7 +34,7 @@ export function CreateGroupDialog() {
     >
       <Field>
         <FieldLabel htmlFor="group-name">Name</FieldLabel>
-        <Input id="group-name" name="name" maxLength={100} required autoFocus />
+        <Input id="group-name" name="name" required autoFocus />
       </Field>
       <Field>
         <FieldLabel htmlFor="group-type">Type</FieldLabel>

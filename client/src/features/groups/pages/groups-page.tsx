@@ -1,5 +1,6 @@
 import { ChevronRightIcon, UsersIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { GroupType } from '@/api/generated';
 import { CreateGroupDialog } from '@/features/groups/components/create-group-dialog';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { useGroups } from '@/features/groups/hooks';
@@ -35,7 +36,9 @@ export function GroupsPage() {
                     <UsersIcon className="size-5 text-muted-foreground" aria-hidden="true" />
                     <div>
                       <CardTitle>{group.name}</CardTitle>
-                      <p className="mt-1 text-muted-foreground text-xs">{group.type}</p>
+                      <p className="mt-1 text-muted-foreground text-xs">
+                        {group.type === GroupType.Shared ? 'Shared' : 'Personal'}
+                      </p>
                     </div>
                     <ChevronRightIcon
                       className="size-4 text-muted-foreground"

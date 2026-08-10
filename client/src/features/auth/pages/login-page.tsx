@@ -18,7 +18,7 @@ export function LoginPage() {
           error={login.error}
           isError={login.isError}
           isPending={login.isPending}
-          onLogin={login.mutate}
+          onLogin={login.mutateAsync}
         />
       </div>
     </main>

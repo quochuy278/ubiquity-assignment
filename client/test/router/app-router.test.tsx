@@ -5,13 +5,18 @@ import { testUser } from '../fixtures/auth';
 
 const authMocks = vi.hoisted(() => ({
   useCurrentUser: vi.fn(),
-  useLogin: vi.fn(() => ({ isError: false, isPending: false, isSuccess: false, mutate: vi.fn() })),
-  useLogout: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
+  useLogin: vi.fn(() => ({
+    isError: false,
+    isPending: false,
+    isSuccess: false,
+    mutateAsync: vi.fn(),
+  })),
+  useLogout: vi.fn(() => ({ isPending: false, mutateAsync: vi.fn() })),
   useRegister: vi.fn(() => ({
     isError: false,
     isPending: false,
     isSuccess: false,
-    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
   })),
 }));
 
@@ -46,7 +51,7 @@ describe('application route authentication', () => {
     expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   });
 
-  it('allows an authenticated user into the application', () => {
+  it('allows an authenticated user into the application', async () => {
     authMocks.useCurrentUser.mockReturnValue({
       data: testUser,
       isError: false,
@@ -55,7 +60,7 @@ describe('application route authentication', () => {
 
     renderRoutes('/groups');
 
-    expect(screen.getByRole('heading', { name: 'Groups' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Groups' })).toBeInTheDocument();
     expect(screen.getByText(testUser.displayName)).toBeInTheDocument();
   });
 
@@ -72,7 +77,7 @@ describe('application route authentication', () => {
     expect(screen.queryByRole('heading', { name: 'Welcome back' })).not.toBeInTheDocument();
   });
 
-  it('keeps authenticated users out of public auth pages', () => {
+  it('keeps authenticated users out of public auth pages', async () => {
     authMocks.useCurrentUser.mockReturnValue({
       data: testUser,
       isError: false,
@@ -81,6 +86,6 @@ describe('application route authentication', () => {
 
     renderRoutes('/login');
 
-    expect(screen.getByRole('heading', { name: 'Groups' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Groups' })).toBeInTheDocument();
   });
 });

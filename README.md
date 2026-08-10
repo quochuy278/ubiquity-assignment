@@ -9,13 +9,13 @@ todos and subtasks, track completion, reorder priorities, and keep the result pe
 The implemented product flow is:
 
 **Register or log in → create a Group → create a Todo List → add Todos → add and complete
-Subtasks → complete or reopen Todos → drag Todos to reorder them → refresh and keep the same
+Subtasks → complete Todos → drag Todos to reorder them → refresh and keep the same
 state and order.**
 
 At a glance:
 
 - Groups and Todo Lists organize a user's work.
-- Todos support descriptions, completion, reopening, and drag-and-drop ordering.
+- Todos support descriptions, completion, and drag-and-drop ordering.
 - Subtasks can be added and completed, with visible progress for each Todo.
 - Data is stored in PostgreSQL and remains available across page and server restarts.
 
@@ -32,7 +32,7 @@ following set and leaves the remaining stories explicit:
 | Realtime collaboration | ❌ | The application does not push live changes between connected users. |
 | Persistence after restart | ✅ | Groups, lists, Todos, Subtasks, completion, and Todo order are stored in PostgreSQL. |
 | Offline editing and sync | ❌ | The application is online and server-authoritative. |
-| Mark todo as done | ✅ | Todos can be completed and reopened. |
+| Mark todo as done | ✅ | Active Todos can be marked as completed. |
 | Drag and drop ordering | ✅ | Top-level Todos can be reordered with a pointer or keyboard and retain their order after refresh. |
 | Subtasks and progress | ✅ | Users can add and complete Subtasks and see a completed count for each Todo. |
 | Cost / price | ❌ | No cost or pricing fields are exposed in the product. |
@@ -56,7 +56,7 @@ below. The frontend runs at [http://localhost:5173](http://localhost:5173) by de
 3. Open the Group and create a Todo List.
 4. Open the list and add several Todos.
 5. Add Subtasks and complete them to see the progress count change.
-6. Complete a Todo, then reopen it.
+6. Complete a Todo and confirm its completed state.
 7. Drag Todos by their handles to change their order. Keyboard sorting is also supported.
 8. Refresh the page to verify that completion and ordering are persisted.
 
