@@ -21,7 +21,8 @@ Groups can be:
 * Personal
 * Shared
 
-A newly registered user automatically receives one Personal Group.
+Users explicitly create Groups. The frontend defaults the creation form to Personal, and the Group
+creator receives an OWNER Membership.
 
 ## Why
 
@@ -111,13 +112,16 @@ Keeping permissions inside Membership naturally supports this scenario.
 * No role duplication
 * Simple authorization checks
 
+The current endpoints authorize access by Membership existence. Role-specific behavior and member
+administration are outside the implemented product flow.
+
 ---
 
 # Decision 3 — Fixed Roles
 
 ## Decision
 
-Roles are implemented as an enum.
+Membership roles are represented as an enum.
 
 ```
 OWNER
@@ -125,19 +129,16 @@ ADMIN
 MEMBER
 ```
 
-Permission rules are implemented in Policy classes.
-
 ## Why
 
-The current product contains only a small, fixed set of roles.
+The domain reserves a small, fixed set of roles without introducing configurable RBAC.
 
 A database-driven RBAC solution would introduce unnecessary complexity.
 
 ## Trade-offs
 
-Permissions cannot be configured dynamically.
-
-If future requirements require customizable permissions, the Policy layer can be replaced without changing controllers or services.
+The current API creates OWNER Memberships for Group creators but does not expose invitations, role
+changes, member removal, ownership transfer, or role-specific authorization behavior.
 
 ---
 
@@ -220,19 +221,17 @@ Example:
 
 ```
 1000
-2000
+1500
 3000
 ```
 
-Reordering updates only the moved Todo.
+Reordering normally assigns the moved Todo a fractional rank between its new neighbors. If the
+configured Decimal precision or bounds leave no valid gap, the affected list is rebalanced.
 
 ## Why
 
-This avoids rewriting the entire list after every drag-and-drop operation.
-
-## Future
-
-If ordering density becomes high, a rebalance strategy or fractional ranking algorithm can be introduced.
+This avoids rewriting the entire list after every drag-and-drop operation while retaining a
+deterministic fallback when rank space is exhausted.
 
 ---
 
@@ -253,7 +252,7 @@ Membership lookup
 
 ↓
 
-Policy evaluation
+Membership authorization
 
 ↓
 
@@ -280,8 +279,8 @@ Examples:
 
 * Todo created
 * Todo completed
-* Member invited
-* Member joined
+* Todo reordered
+* Subtask created or completed
 
 The ActivityEvent table provides an audit trail without polluting domain entities.
 
