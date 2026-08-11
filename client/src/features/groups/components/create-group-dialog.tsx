@@ -8,10 +8,16 @@ import { NativeSelect, NativeSelectOption } from '@/shared/components/ui/native-
 import { toast } from '@/shared/components/ui/toast';
 
 export function CreateGroupDialog() {
-  const createGroup = useCreateGroup();
+  const {
+    error: createGroupError,
+    isError: hasCreateGroupError,
+    isPending: isCreatingGroup,
+    mutateAsync: createGroup,
+    reset: resetCreateGroup,
+  } = useCreateGroup();
 
   const handleSubmit = async (data: FormData, close: () => void) => {
-    await createGroup.mutateAsync({
+    await createGroup({
       name: String(data.get('name')),
       type: String(data.get('type')) as GroupType,
     });
@@ -27,9 +33,9 @@ export function CreateGroupDialog() {
       triggerLabel="Create group"
       submitLabel="Create group"
       pendingLabel="Creating group..."
-      isPending={createGroup.isPending}
-      error={createGroup.isError ? createGroup.error : undefined}
-      onReset={createGroup.reset}
+      isPending={isCreatingGroup}
+      error={hasCreateGroupError ? createGroupError : undefined}
+      onReset={resetCreateGroup}
       onSubmit={handleSubmit}
     >
       <Field>

@@ -8,24 +8,39 @@ import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { Card, CardContent } from '@/shared/components/ui/card';
 
 export function PendingInvitations() {
-  const invitations = usePendingInvitations();
-  const acceptInvitation = useAcceptInvitation();
+  const {
+    data: pendingInvitations,
+    error: pendingInvitationsError,
+    isError: hasPendingInvitationsError,
+    isPending: isLoadingPendingInvitations,
+    isSuccess: hasLoadedPendingInvitations,
+  } = usePendingInvitations();
+  const {
+    error: acceptInvitationError,
+    isError: hasAcceptInvitationError,
+    isPending: isAcceptingInvitation,
+    mutateAsync: acceptInvitation,
+    variables: acceptingInvitationToken,
+  } = useAcceptInvitation();
   const navigate = useNavigate();
 
-  if (invitations.isPending || (invitations.isSuccess && invitations.data.length === 0)) {
+  if (
+    isLoadingPendingInvitations ||
+    (hasLoadedPendingInvitations && pendingInvitations.length === 0)
+  ) {
     return null;
   }
 
-  if (invitations.isError) {
+  if (hasPendingInvitationsError) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>{getApiErrorMessage(invitations.error)}</AlertDescription>
+        <AlertDescription>{getApiErrorMessage(pendingInvitationsError)}</AlertDescription>
       </Alert>
     );
   }
 
   const accept = async (token: string) => {
-    const group = await acceptInvitation.mutateAsync(token);
+    const group = await acceptInvitation(token);
     await navigate(`/groups/${group.id}`);
   };
 
@@ -37,7 +52,7 @@ export function PendingInvitations() {
         </h2>
         <p className="text-muted-foreground text-sm">Join a shared group you were invited to.</p>
       </div>
-      {invitations.data.map((invitation) => (
+      {pendingInvitations.map((invitation) => (
         <Card key={invitation.id}>
           <CardContent className="flex flex-wrap items-center gap-3">
             <MailIcon className="size-5 text-muted-foreground" aria-hidden="true" />
@@ -50,9 +65,7 @@ export function PendingInvitations() {
             </div>
             <SafeButton
               size="sm"
-              pending={
-                acceptInvitation.isPending && acceptInvitation.variables === invitation.token
-              }
+              pending={isAcceptingInvitation && acceptingInvitationToken === invitation.token}
               pendingText="Accepting..."
               onAction={() => accept(invitation.token).catch(() => undefined)}
             >
@@ -61,9 +74,9 @@ export function PendingInvitations() {
           </CardContent>
         </Card>
       ))}
-      {acceptInvitation.isError && (
+      {hasAcceptInvitationError && (
         <Alert variant="destructive">
-          <AlertDescription>{getApiErrorMessage(acceptInvitation.error)}</AlertDescription>
+          <AlertDescription>{getApiErrorMessage(acceptInvitationError)}</AlertDescription>
         </Alert>
       )}
     </section>

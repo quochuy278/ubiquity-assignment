@@ -8,10 +8,16 @@ import { toast } from '@/shared/components/ui/toast';
 
 export function CreateSubtaskDialog({ todoId }: { todoId: string }) {
   const titleId = useId();
-  const createSubtask = useCreateSubtask(todoId);
+  const {
+    error: createSubtaskError,
+    isError: hasCreateSubtaskError,
+    isPending: isCreatingSubtask,
+    mutateAsync: createSubtask,
+    reset: resetCreateSubtask,
+  } = useCreateSubtask(todoId);
 
   const handleSubmit = async (data: FormData, close: () => void) => {
-    await createSubtask.mutateAsync({ title: String(data.get('title')) });
+    await createSubtask({ title: String(data.get('title')) });
     toast.add({ title: 'Subtask created', type: 'success' });
     close();
   };
@@ -24,9 +30,9 @@ export function CreateSubtaskDialog({ todoId }: { todoId: string }) {
       triggerLabel="Add subtask"
       submitLabel="Add subtask"
       pendingLabel="Adding subtask..."
-      isPending={createSubtask.isPending}
-      error={createSubtask.isError ? createSubtask.error : undefined}
-      onReset={createSubtask.reset}
+      isPending={isCreatingSubtask}
+      error={hasCreateSubtaskError ? createSubtaskError : undefined}
+      onReset={resetCreateSubtask}
       onSubmit={handleSubmit}
     >
       <Field>

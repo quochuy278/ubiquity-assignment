@@ -15,26 +15,40 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 
 export function GroupPage() {
   const { groupId = '' } = useParams();
-  const group = useGroup(groupId);
-  const lists = useTodoLists(groupId);
-  useDocumentTitle(group.isSuccess ? group.data.name : 'Group');
+  const {
+    data: group,
+    error: groupError,
+    isError: hasGroupError,
+    isPending: isLoadingGroup,
+    isSuccess: hasLoadedGroup,
+    refetch: refetchGroup,
+  } = useGroup(groupId);
+  const {
+    data: todoLists,
+    error: todoListsError,
+    isError: hasTodoListsError,
+    isPending: isLoadingTodoLists,
+    refetch: refetchTodoLists,
+  } = useTodoLists(groupId);
+  useDocumentTitle(hasLoadedGroup ? group.name : 'Group');
 
-  if (group.isPending || lists.isPending) return <PageLoading label="Loading group" />;
-  if (group.isError) return <ApiError error={group.error} onRetry={() => group.refetch()} />;
-  if (lists.isError) return <ApiError error={lists.error} onRetry={() => lists.refetch()} />;
+  if (isLoadingGroup || isLoadingTodoLists) return <PageLoading label="Loading group" />;
+  if (hasGroupError) return <ApiError error={groupError} onRetry={() => refetchGroup()} />;
+  if (hasTodoListsError) {
+    return <ApiError error={todoListsError} onRetry={() => refetchTodoLists()} />;
+  }
 
   return (
-    <GroupRealtime groupId={groupId} groupType={group.data.type}>
+    <GroupRealtime groupId={groupId} groupType={group.type}>
       <div className="space-y-4">
-        <GroupBreadcrumbs groupId={groupId} groupName={group.data.name} />
-        <GroupPageSection title={group.data.name} description="Todo lists in this group.">
-          {group.data.type === GroupType.Shared &&
-            group.data.currentUserRole === MembershipRole.Owner && (
-              <div className="flex justify-end">
-                <InviteMemberDialog groupId={groupId} />
-              </div>
-            )}
-          {lists.data.length === 0 ? (
+        <GroupBreadcrumbs groupId={groupId} groupName={group.name} />
+        <GroupPageSection title={group.name} description="Todo lists in this group.">
+          {group.type === GroupType.Shared && group.currentUserRole === MembershipRole.Owner && (
+            <div className="flex justify-end">
+              <InviteMemberDialog groupId={groupId} />
+            </div>
+          )}
+          {todoLists.length === 0 ? (
             <EmptyState
               title="No todo lists"
               description="Create a list to start organizing todos."
@@ -46,7 +60,7 @@ export function GroupPage() {
                 <CreateTodoListDialog groupId={groupId} />
               </div>
               <div className="space-y-3">
-                {lists.data.map((list) => (
+                {todoLists.map((list) => (
                   <Link key={list.id} to={`/groups/${groupId}/lists/${list.id}`}>
                     <Card className="mb-3 transition-colors hover:bg-muted/40">
                       <CardContent className="flex items-center gap-3">

@@ -6,14 +6,24 @@ import { queryKeys } from '@/api/query-keys';
 export function usePendingInvitationsQuery() {
   return useQuery({
     queryKey: queryKeys.invitations.pending,
-    queryFn: async () => (await invitationsApi.invitationControllerFindPendingV1()).data,
+    queryFn: async () => {
+      const response = await invitationsApi.invitationControllerFindPendingV1();
+
+      return response.data;
+    },
   });
 }
 
 export function useCreateInvitationMutation(groupId: string) {
   return useMutation({
-    mutationFn: async (createInvitationDto: CreateInvitationDto) =>
-      (await invitationsApi.invitationControllerCreateV1({ groupId, createInvitationDto })).data,
+    mutationFn: async (createInvitationDto: CreateInvitationDto) => {
+      const response = await invitationsApi.invitationControllerCreateV1({
+        groupId,
+        createInvitationDto,
+      });
+
+      return response.data;
+    },
   });
 }
 
@@ -21,8 +31,11 @@ export function useAcceptInvitationMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (token: string) =>
-      (await invitationsApi.invitationControllerAcceptV1({ token })).data,
+    mutationFn: async (token: string) => {
+      const response = await invitationsApi.invitationControllerAcceptV1({ token });
+
+      return response.data;
+    },
     onSuccess: async (group) => {
       queryClient.setQueryData<GroupResponseDto>(queryKeys.groups.detail(group.id), group);
       await Promise.all([

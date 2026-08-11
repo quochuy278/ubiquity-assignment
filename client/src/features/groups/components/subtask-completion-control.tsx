@@ -11,13 +11,14 @@ export function SubtaskCompletionControl({
   subtask: SubTaskResponseDto;
   todoId: string;
 }) {
-  const updateCompletion = useUpdateSubtaskCompletion(todoId);
+  const { isPending: isUpdatingSubtaskCompletion, mutateAsync: updateSubtaskCompletion } =
+    useUpdateSubtaskCompletion(todoId);
 
   if (subtask.completed) return null;
 
   const handleComplete = async () => {
     try {
-      await updateCompletion.mutateAsync({
+      await updateSubtaskCompletion({
         subtaskId: subtask.id,
         updateSubTaskCompletionDto: { completed: true },
       });
@@ -35,7 +36,7 @@ export function SubtaskCompletionControl({
     <SafeButton
       variant="ghost"
       size="xs"
-      pending={updateCompletion.isPending}
+      pending={isUpdatingSubtaskCompletion}
       pendingText="Completing..."
       onAction={handleComplete}
     >

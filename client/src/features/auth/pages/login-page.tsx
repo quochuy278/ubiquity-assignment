@@ -5,11 +5,17 @@ import { getPostLoginPath } from '@/features/auth/utils';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 
 export function LoginPage() {
-  const login = useLogin();
+  const {
+    error: loginError,
+    isError: hasLoginError,
+    isPending: isLoggingIn,
+    isSuccess: isLoggedIn,
+    mutateAsync: login,
+  } = useLogin();
   const location = useLocation();
   useDocumentTitle('Login');
 
-  if (login.isSuccess) {
+  if (isLoggedIn) {
     return <Navigate to={getPostLoginPath(location.state)} replace />;
   }
 
@@ -17,10 +23,10 @@ export function LoginPage() {
     <main className="flex min-h-svh w-full items-center justify-center bg-muted/30 p-6 md:p-10">
       <div className="w-full max-w-sm">
         <LoginForm
-          error={login.error}
-          isError={login.isError}
-          isPending={login.isPending}
-          onLogin={login.mutateAsync}
+          error={loginError}
+          isError={hasLoginError}
+          isPending={isLoggingIn}
+          onLogin={login}
         />
       </div>
     </main>
