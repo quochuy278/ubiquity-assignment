@@ -107,3 +107,7 @@ jobs:
 
       - name: Build client
         run: pnpm build
+        env:
+          ABLY_KEY: ${{ secrets.ABLY_KEY }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_TIMEOUT_MS: ${{ secrets.VITE_API_TIMEOUT_MS }}
