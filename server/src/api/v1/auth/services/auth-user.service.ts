@@ -14,6 +14,10 @@ export class AuthUserService {
     return this.users.findByEmailWithPassword(email);
   }
 
+  findByEmail(email: string): Promise<PublicUser | null> {
+    return this.users.findByEmail(email);
+  }
+
   findById(userId: string): Promise<PublicUser | null> {
     return this.users.findById(userId);
   }

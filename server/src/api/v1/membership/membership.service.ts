@@ -22,11 +22,35 @@ export class MembershipService {
     );
   }
 
+  createMember(
+    groupId: string,
+    userId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
+    return this.memberships.create({ groupId, userId, role: MembershipRole.MEMBER }, transaction);
+  }
+
+  findRole(
+    groupId: string,
+    userId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<MembershipRole | null> {
+    return this.memberships.findRole(groupId, userId, transaction);
+  }
+
+  findForUser(userId: string): Promise<Array<{ groupId: string; role: MembershipRole }>> {
+    return this.memberships.findByUserId(userId);
+  }
+
   findGroupIds(userId: string): Promise<string[]> {
     return this.memberships.findGroupIdsByUserId(userId);
   }
 
-  isMember(groupId: string, userId: string): Promise<boolean> {
-    return this.memberships.exists(groupId, userId);
+  isMember(
+    groupId: string,
+    userId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    return this.memberships.exists(groupId, userId, transaction);
   }
 }

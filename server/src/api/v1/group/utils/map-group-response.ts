@@ -6,6 +6,7 @@ export function mapGroupResponse(group: GroupResult): GroupResponseDto {
   return {
     id: group.id,
     type: group.type,
+    currentUserRole: group.currentUserRole,
     name: group.name,
     createdById: group.createdById,
     createdAt: toIsoDateTime(group.createdAt),

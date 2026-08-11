@@ -21,6 +21,30 @@ export class MembershipRepository {
     await client.membership.create({ data: input });
   }
 
+  async findRole(
+    groupId: string,
+    userId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<MembershipRole | null> {
+    const client = transaction ?? this.prisma;
+    const membership = await client.membership.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+      select: { role: true },
+    });
+
+    return membership ? (membership.role as MembershipRole) : null;
+  }
+
+  async findByUserId(userId: string): Promise<Array<{ groupId: string; role: MembershipRole }>> {
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId },
+      select: { groupId: true, role: true },
+      orderBy: [{ joinedAt: 'desc' }, { groupId: 'asc' }],
+    });
+
+    return memberships as Array<{ groupId: string; role: MembershipRole }>;
+  }
+
   async findGroupIdsByUserId(userId: string): Promise<string[]> {
     const memberships = await this.prisma.membership.findMany({
       where: { userId },
@@ -31,12 +55,11 @@ export class MembershipRepository {
     return memberships.map(({ groupId }) => groupId);
   }
 
-  async exists(groupId: string, userId: string): Promise<boolean> {
-    const membership = await this.prisma.membership.findUnique({
-      where: { groupId_userId: { groupId, userId } },
-      select: { groupId: true },
-    });
-
-    return membership !== null;
+  async exists(
+    groupId: string,
+    userId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    return (await this.findRole(groupId, userId, transaction)) !== null;
   }
 }

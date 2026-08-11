@@ -129,7 +129,8 @@ model Invitation {
   group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   inviter     User     @relation("InvitationCreator", fields: [invitedById], references: [id], onUpdate: Cascade)
 
-  @@index([groupId])
+  @@unique([groupId, email])
+  @@index([email, status, expiresAt])
 }
 
 model ActivityEvent {
