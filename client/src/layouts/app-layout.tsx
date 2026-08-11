@@ -4,10 +4,10 @@ import { useCurrentUser, useLogout } from '@/features/auth';
 import { SafeButton } from '@/shared/components/safe-button';
 
 export function AppLayout() {
-  const currentUser = useCurrentUser();
-  const logout = useLogout();
+  const { data: currentUser } = useCurrentUser();
+  const { mutateAsync: logout, isPending: isLoggingOut } = useLogout();
   const handleLogout = async () => {
-    await logout.mutateAsync().catch(() => undefined);
+    await logout().catch(() => undefined);
   };
 
   return (
@@ -32,12 +32,12 @@ export function AppLayout() {
             </NavLink>
           </nav>
           <span className="hidden text-muted-foreground text-sm sm:inline">
-            {currentUser.data?.displayName}
+            {currentUser?.displayName}
           </span>
           <SafeButton
             variant="outline"
             size="sm"
-            pending={logout.isPending}
+            pending={isLoggingOut}
             pendingText="Signing out..."
             onAction={handleLogout}
           >

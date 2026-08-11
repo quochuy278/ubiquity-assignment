@@ -6,10 +6,16 @@ import { Input } from '@/shared/components/ui/input';
 import { toast } from '@/shared/components/ui/toast';
 
 export function InviteMemberDialog({ groupId }: { groupId: string }) {
-  const createInvitation = useCreateInvitation(groupId);
+  const {
+    error: createInvitationError,
+    isError: hasCreateInvitationError,
+    isPending: isCreatingInvitation,
+    mutateAsync: createInvitation,
+    reset: resetCreateInvitation,
+  } = useCreateInvitation(groupId);
 
   const handleSubmit = async (data: FormData, close: () => void) => {
-    await createInvitation.mutateAsync({ email: String(data.get('email')) });
+    await createInvitation({ email: String(data.get('email')) });
     toast.add({ title: 'Invitation sent', type: 'success' });
     close();
   };
@@ -22,9 +28,9 @@ export function InviteMemberDialog({ groupId }: { groupId: string }) {
       triggerLabel="Invite member"
       submitLabel="Send invitation"
       pendingLabel="Sending invitation..."
-      isPending={createInvitation.isPending}
-      error={createInvitation.isError ? createInvitation.error : undefined}
-      onReset={createInvitation.reset}
+      isPending={isCreatingInvitation}
+      error={hasCreateInvitationError ? createInvitationError : undefined}
+      onReset={resetCreateInvitation}
       onSubmit={handleSubmit}
     >
       <Field>

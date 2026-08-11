@@ -12,16 +12,22 @@ import { PageLoading } from '@/shared/components/page-loading';
 import { Card, CardHeader, CardTitle } from '@/shared/components/ui/card';
 
 export function GroupsPage() {
-  const groups = useGroups();
+  const {
+    data: groups,
+    error: groupsError,
+    isError: hasGroupsError,
+    isPending: isLoadingGroups,
+    refetch: refetchGroups,
+  } = useGroups();
   useDocumentTitle('Groups');
 
-  if (groups.isPending) return <PageLoading label="Loading groups" />;
-  if (groups.isError) return <ApiError error={groups.error} onRetry={() => groups.refetch()} />;
+  if (isLoadingGroups) return <PageLoading label="Loading groups" />;
+  if (hasGroupsError) return <ApiError error={groupsError} onRetry={() => refetchGroups()} />;
 
   return (
     <GroupPageSection title="Groups" description="Your personal and shared workspaces.">
       <PendingInvitations />
-      {groups.data.length === 0 ? (
+      {groups.length === 0 ? (
         <EmptyState
           title="No groups yet"
           description="Create a group to start organizing todo lists."
@@ -33,7 +39,7 @@ export function GroupsPage() {
             <CreateGroupDialog />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {groups.data.map((group) => (
+            {groups.map((group) => (
               <Link key={group.id} to={`/groups/${group.id}`}>
                 <Card className="h-full transition-colors hover:bg-muted/40">
                   <CardHeader className="grid grid-cols-[auto_1fr_auto] items-center gap-3">

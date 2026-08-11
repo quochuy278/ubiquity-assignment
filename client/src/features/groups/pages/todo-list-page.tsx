@@ -12,38 +12,55 @@ import { PageLoading } from '@/shared/components/page-loading';
 
 export function TodoListPage() {
   const { groupId = '', todoListId = '' } = useParams();
-  const group = useGroup(groupId);
-  const list = useTodoList(todoListId);
-  const todos = useTodos(todoListId);
-  const listTitle = list.isSuccess && list.data.groupId === groupId ? list.data.name : 'Todo List';
+  const {
+    data: group,
+    error: groupError,
+    isError: hasGroupError,
+    isPending: isLoadingGroup,
+    refetch: refetchGroup,
+  } = useGroup(groupId);
+  const {
+    data: todoList,
+    error: todoListError,
+    isError: hasTodoListError,
+    isPending: isLoadingTodoList,
+    isSuccess: hasLoadedTodoList,
+    refetch: refetchTodoList,
+  } = useTodoList(todoListId);
+  const {
+    data: todos,
+    error: todosError,
+    isError: hasTodosError,
+    isPending: isLoadingTodos,
+    refetch: refetchTodos,
+  } = useTodos(todoListId);
+  const listTitle = hasLoadedTodoList && todoList.groupId === groupId ? todoList.name : 'Todo List';
   useDocumentTitle(listTitle);
 
-  if (list.isPending) {
+  if (isLoadingTodoList) {
     return <PageLoading label="Loading todos" />;
   }
-  if (list.isError) return <ApiError error={list.error} onRetry={() => list.refetch()} />;
-  if (list.data.groupId !== groupId) return <Navigate to="/groups" replace />;
+  if (hasTodoListError) {
+    return <ApiError error={todoListError} onRetry={() => refetchTodoList()} />;
+  }
+  if (todoList.groupId !== groupId) return <Navigate to="/groups" replace />;
 
-  if (group.isPending || todos.isPending) {
+  if (isLoadingGroup || isLoadingTodos) {
     return <PageLoading label="Loading todos" />;
   }
-  if (group.isError) return <ApiError error={group.error} onRetry={() => group.refetch()} />;
-  if (todos.isError) return <ApiError error={todos.error} onRetry={() => todos.refetch()} />;
+  if (hasGroupError) return <ApiError error={groupError} onRetry={() => refetchGroup()} />;
+  if (hasTodosError) return <ApiError error={todosError} onRetry={() => refetchTodos()} />;
 
   return (
     <TodoListRealtime
-      groupType={group.data.type}
-      todoIds={todos.data.map((todo) => todo.id)}
+      groupType={group.type}
+      todoIds={todos.map((todo) => todo.id)}
       todoListId={todoListId}
     >
       <div className="space-y-4">
-        <GroupBreadcrumbs
-          groupId={groupId}
-          groupName={group.data.name}
-          todoListName={list.data.name}
-        />
-        <GroupPageSection title={list.data.name} description="Todos in this list.">
-          {todos.data.length === 0 ? (
+        <GroupBreadcrumbs groupId={groupId} groupName={group.name} todoListName={todoList.name} />
+        <GroupPageSection title={todoList.name} description="Todos in this list.">
+          {todos.length === 0 ? (
             <EmptyState
               title="No todos"
               description="Create a todo to start tracking work in this list."
@@ -54,7 +71,7 @@ export function TodoListPage() {
               <div className="flex justify-end">
                 <CreateTodoDialog todoListId={todoListId} />
               </div>
-              <SortableTodoList todos={todos.data} todoListId={todoListId} />
+              <SortableTodoList todos={todos} todoListId={todoListId} />
             </div>
           )}
         </GroupPageSection>

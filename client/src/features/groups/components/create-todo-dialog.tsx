@@ -7,12 +7,18 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { toast } from '@/shared/components/ui/toast';
 
 export function CreateTodoDialog({ todoListId }: { todoListId: string }) {
-  const createTodo = useCreateTodo(todoListId);
+  const {
+    error: createTodoError,
+    isError: hasCreateTodoError,
+    isPending: isCreatingTodo,
+    mutateAsync: createTodo,
+    reset: resetCreateTodo,
+  } = useCreateTodo(todoListId);
 
   const handleSubmit = async (data: FormData, close: () => void) => {
     const description = String(data.get('description'));
 
-    await createTodo.mutateAsync({
+    await createTodo({
       title: String(data.get('title')),
       ...(description ? { description } : {}),
     });
@@ -28,9 +34,9 @@ export function CreateTodoDialog({ todoListId }: { todoListId: string }) {
       triggerLabel="Create todo"
       submitLabel="Create todo"
       pendingLabel="Creating todo..."
-      isPending={createTodo.isPending}
-      error={createTodo.isError ? createTodo.error : undefined}
-      onReset={createTodo.reset}
+      isPending={isCreatingTodo}
+      error={hasCreateTodoError ? createTodoError : undefined}
+      onReset={resetCreateTodo}
       onSubmit={handleSubmit}
     >
       <Field>

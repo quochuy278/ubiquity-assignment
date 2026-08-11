@@ -4,10 +4,16 @@ import { useRegister } from '@/features/auth/hooks';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 
 export function RegisterPage() {
-  const register = useRegister();
+  const {
+    error: registrationError,
+    isError: hasRegistrationError,
+    isPending: isRegistering,
+    isSuccess: isRegistered,
+    mutateAsync: register,
+  } = useRegister();
   useDocumentTitle('Register');
 
-  if (register.isSuccess) {
+  if (isRegistered) {
     return <Navigate to="/groups" replace />;
   }
 
@@ -15,10 +21,10 @@ export function RegisterPage() {
     <main className="flex min-h-svh w-full items-center justify-center bg-muted/30 p-6 md:p-10">
       <div className="w-full max-w-sm">
         <RegisterForm
-          error={register.error}
-          isError={register.isError}
-          isPending={register.isPending}
-          onRegister={register.mutateAsync}
+          error={registrationError}
+          isError={hasRegistrationError}
+          isPending={isRegistering}
+          onRegister={register}
         />
       </div>
     </main>
