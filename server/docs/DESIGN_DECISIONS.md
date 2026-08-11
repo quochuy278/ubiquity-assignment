@@ -137,8 +137,9 @@ A database-driven RBAC solution would introduce unnecessary complexity.
 
 ## Trade-offs
 
-The current API creates OWNER Memberships for Group creators but does not expose invitations, role
-changes, member removal, ownership transfer, or role-specific authorization behavior.
+The API creates OWNER Memberships for Group creators and MEMBER Memberships through authenticated
+invitations. Invitation creation is restricted to SHARED Group owners; role changes, member
+removal, ownership transfer, and a general permissions framework remain out of scope.
 
 ---
 

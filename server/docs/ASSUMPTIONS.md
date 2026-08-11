@@ -41,8 +41,9 @@ Two group types exist:
 * PERSONAL
 * SHARED
 
-Authorization and collaboration are scoped at the Group level. Invitation and member-management
-flows are not exposed by the current API or frontend.
+Authorization and collaboration are scoped at the Group level. A SHARED Group OWNER can invite an
+existing registered user, who joins as MEMBER after authenticated acceptance. Broader
+member-management flows are not exposed.
 
 ---
 
@@ -86,9 +87,9 @@ Membership stores one of these roles:
 * ADMIN
 * MEMBER
 
-The current application creates OWNER Memberships for Group creators and authorizes domain access
-by Membership existence. It does not expose role-specific administration, invitation onboarding,
-role changes, member removal, or ownership transfer.
+The application creates OWNER Memberships for Group creators and MEMBER Memberships through
+accepted invitations. OWNER-only invitation creation is the sole role-specific rule; role changes,
+member removal, leaving, and ownership transfer are not exposed.
 
 ---
 

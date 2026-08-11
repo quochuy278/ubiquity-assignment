@@ -38,8 +38,8 @@ erases E2E data created by both environments. Do not run it while an E2E workflo
 - Generate unique emails, names, and other unique values for every story run.
 - Create every prerequisite through the public HTTP API inside the current story.
 - When no public API exists for a prerequisite, seed only that boundary directly and document why
-  in the story. The shared-member story uses this exception for its membership fixture because the
-  server does not expose invitation or member-management endpoints.
+  in the story. The shared-member story now creates its MEMBER through the production invitation
+  API rather than a direct database fixture.
 - Assert using IDs returned by the current story.
 - Never depend on another story, global database contents, or Jest execution order.
 
