@@ -10,11 +10,18 @@ import { AppModule } from '../../../src/app/app.module';
 import { ErrorCode } from '../../../src/common/exception/error-code';
 import { GlobalException } from '../../../src/common/exception/global.exception';
 import { formatValidationErrors } from '../../../src/common/exception/validation-error.formatter';
+import { RealtimePublisher } from '../../../src/shared/realtime/realtime.publisher';
 
 export async function createE2eApplication(): Promise<INestApplication<App>> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(RealtimePublisher)
+    .useValue({
+      publishGroupEvent: () => Promise.resolve(),
+      publishTodoListEvent: () => Promise.resolve(),
+    })
+    .compile();
   const app = moduleFixture.createNestApplication();
 
   app.useGlobalPipes(

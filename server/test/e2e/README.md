@@ -3,6 +3,9 @@
 The E2E suite starts the real Nest application in the Jest process, sends real HTTP requests with
 Supertest, and persists data through Prisma to a dedicated PostgreSQL database.
 
+The E2E bootstrap replaces `RealtimePublisher` with a no-op implementation, so these tests never
+connect to Ably. Realtime publishing behavior is covered by focused unit tests instead.
+
 ## Local setup
 
 1. Copy `.env.test.example` to `.env.test.local`.
@@ -34,6 +37,9 @@ erases E2E data created by both environments. Do not run it while an E2E workflo
 - Structure each story with visible `Given`, `When`, and `Then` sections.
 - Generate unique emails, names, and other unique values for every story run.
 - Create every prerequisite through the public HTTP API inside the current story.
+- When no public API exists for a prerequisite, seed only that boundary directly and document why
+  in the story. The shared-member story uses this exception for its membership fixture because the
+  server does not expose invitation or member-management endpoints.
 - Assert using IDs returned by the current story.
 - Never depend on another story, global database contents, or Jest execution order.
 
