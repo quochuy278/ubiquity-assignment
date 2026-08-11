@@ -1,6 +1,14 @@
 name: Server CI
 
 on:
+  workflow_call:
+    secrets:
+      E2E_AUTH_ACCESS_TOKEN_SECRET:
+        required: true
+      E2E_DATABASE_URL:
+        required: true
+      E2E_DIRECT_URL:
+        required: true
   push:
     branches:
       - master

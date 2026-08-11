@@ -1,0 +1,277 @@
+name: Production Release
+
+on:
+  push:
+    tags:
+      - "release/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  parse:
+    name: Parse release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      target: ${{ steps.release.outputs.target }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Validate and parse tag
+        id: release
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          pattern='^release/(client-|server-)?v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?)$'
+
+          if [[ ! "$tag" =~ $pattern ]]; then
+            echo "::error::Malformed production release tag: $tag"
+            echo "Expected release/client-vX.Y.Z, release/server-vX.Y.Z, or release/vX.Y.Z"
+            exit 1
+          fi
+
+          case "${BASH_REMATCH[1]}" in
+            client-) target="client" ;;
+            server-) target="server" ;;
+            "") target="all" ;;
+            *)
+              echo "::error::Unsupported release target in tag: $tag"
+              exit 1
+              ;;
+          esac
+
+          version="${BASH_REMATCH[2]}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Production release"
+            echo
+            echo "- Tag: \`$tag\`"
+            echo "- Version: \`$version\`"
+            echo "- Target: \`$target\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  verify-client:
+    name: Verify client
+    needs: parse
+    if: needs.parse.outputs.target == 'client' || needs.parse.outputs.target == 'all'
+    uses: ./.github/workflows/client-ci.yml
+    secrets: inherit
+
+  verify-server:
+    name: Verify server
+    needs: parse
+    if: needs.parse.outputs.target == 'server' || needs.parse.outputs.target == 'all'
+    uses: ./.github/workflows/server-ci.yml
+    secrets: inherit
+
+  verification:
+    name: Require successful verification
+    needs:
+      - parse
+      - verify-client
+      - verify-server
+    if: always() && needs.parse.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check targeted verification results
+        env:
+          CLIENT_RESULT: ${{ needs.verify-client.result }}
+          SERVER_RESULT: ${{ needs.verify-server.result }}
+          TARGET: ${{ needs.parse.outputs.target }}
+        shell: bash
+        run: |
+          case "$TARGET" in
+            client)
+              [[ "$CLIENT_RESULT" == "success" ]] || exit 1
+              ;;
+            server)
+              [[ "$SERVER_RESULT" == "success" ]] || exit 1
+              ;;
+            all)
+              [[ "$CLIENT_RESULT" == "success" && "$SERVER_RESULT" == "success" ]] || exit 1
+              ;;
+            *)
+              echo "::error::Unexpected release target: $TARGET"
+              exit 1
+              ;;
+          esac
+
+  deploy-client:
+    name: Deploy client to Vercel
+    needs:
+      - parse
+      - verification
+    if: needs.parse.outputs.target == 'client' || needs.parse.outputs.target == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Validate Vercel configuration
+        shell: bash
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::$name is not configured for the production environment"
+              exit 1
+            fi
+          done
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel production configuration
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel production artifacts
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy Vercel production artifacts
+        id: deploy
+        shell: bash
+        run: |
+          output="$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          printf '%s\n' "$output"
+          url="$(printf '%s\n' "$output" | grep -Eo 'https://[A-Za-z0-9.-]+\.vercel\.app' | tail -n 1 || true)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize client deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+          RELEASE_TAG: ${{ needs.parse.outputs.tag }}
+          VERSION: ${{ needs.parse.outputs.version }}
+        shell: bash
+        run: |
+          {
+            echo "## Client deployment"
+            echo
+            echo "- Status: success"
+            echo "- Tag: \`$RELEASE_TAG\`"
+            echo "- Version: \`$VERSION\`"
+            if [[ -n "$DEPLOYMENT_URL" ]]; then
+              echo "- URL: $DEPLOYMENT_URL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-server:
+    name: Deploy server to Railway
+    needs:
+      - parse
+      - verification
+    if: needs.parse.outputs.target == 'server' || needs.parse.outputs.target == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE_ID: ${{ vars.RAILWAY_SERVICE_ID }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Validate Railway configuration
+        shell: bash
+        run: |
+          for name in RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_ENVIRONMENT_ID RAILWAY_SERVICE_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::$name is not configured for the production environment"
+              exit 1
+            fi
+          done
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli@latest
+
+      - name: Deploy server to Railway
+        env:
+          RELEASE_TAG: ${{ needs.parse.outputs.tag }}
+        shell: bash
+        run: |
+          railway up ./server \
+            --path-as-root \
+            --ci \
+            --yes \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT_ID" \
+            --service "$RAILWAY_SERVICE_ID" \
+            --message "Release $RELEASE_TAG"
+
+      - name: Summarize server deployment
+        env:
+          RELEASE_TAG: ${{ needs.parse.outputs.tag }}
+          VERSION: ${{ needs.parse.outputs.version }}
+        shell: bash
+        run: |
+          {
+            echo "## Server deployment"
+            echo
+            echo "- Status: success"
+            echo "- Tag: \`$RELEASE_TAG\`"
+            echo "- Version: \`$VERSION\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release-summary:
+    name: Release summary
+    needs:
+      - parse
+      - verification
+      - deploy-client
+      - deploy-server
+    if: always() && needs.parse.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Write release summary
+        env:
+          CLIENT_STATUS: ${{ needs.deploy-client.result }}
+          RELEASE_TAG: ${{ needs.parse.outputs.tag }}
+          SERVER_STATUS: ${{ needs.deploy-server.result }}
+          TARGET: ${{ needs.parse.outputs.target }}
+          VERIFICATION_STATUS: ${{ needs.verification.result }}
+          VERSION: ${{ needs.parse.outputs.version }}
+        shell: bash
+        run: |
+          {
+            echo "## Release result"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Tag | \`$RELEASE_TAG\` |"
+            echo "| Version | \`$VERSION\` |"
+            echo "| Target | \`$TARGET\` |"
+            echo "| Verification | $VERIFICATION_STATUS |"
+            echo "| Client deployment | $CLIENT_STATUS |"
+            echo "| Server deployment | $SERVER_STATUS |"
+          } >> "$GITHUB_STEP_SUMMARY"

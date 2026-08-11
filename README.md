@@ -106,6 +106,28 @@ linting, type checking, and production builds, and also runs the backend test su
 
 See the project-specific documentation for the complete commands and test setup.
 
+## Production Releases
+
+Production deployments are explicit and tag-driven:
+
+```bash
+git tag release/client-v1.0.0
+git push origin release/client-v1.0.0
+```
+
+```bash
+git tag release/server-v1.0.0
+git push origin release/server-v1.0.0
+```
+
+```bash
+git tag release/v1.0.0
+git push origin release/v1.0.0
+```
+
+Client tags verify and deploy only the Vercel frontend, server tags verify and deploy only the
+Railway backend, and generic release tags verify both applications before deploying both.
+
 ## Project Structure
 
 - [`client/`](client/) — React frontend; see the [client documentation](client/README.md).
