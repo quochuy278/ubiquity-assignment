@@ -10,6 +10,7 @@ import type { TodoListRealtimeEvent } from '../../../shared/realtime/realtime.ty
 import { now } from '../../../shared/utils/time.utilities';
 import { ActivityEntityType, ActivityType } from '../activity/activity.constants';
 import { ActivityService } from '../activity/activity.service';
+import { GroupType } from '../group/group.constants';
 import { TodoListService } from '../todo-list/todo-list.service';
 import type { CreateTodoDto } from './dto/create-todo.dto';
 import type { ReorderTodoDto } from './dto/reorder-todo.dto';
@@ -30,7 +31,7 @@ export class TodoService {
   ) {}
 
   async create(userId: string, todoListId: string, input: CreateTodoDto): Promise<TodoResult> {
-    const todoList = await this.todoLists.findById(userId, todoListId);
+    const { group, todoList } = await this.todoLists.findByIdWithGroup(userId, todoListId);
 
     const todo = await this.prisma.$transaction(async (transaction) => {
       const created = await this.todos.createWithTransaction(
@@ -52,11 +53,13 @@ export class TodoService {
       return created;
     });
 
-    await this.publishRealtimeEvent({
-      type: TodoListRealtimeEventType.TODO_CREATED,
-      todoListId,
-      todoId: todo.id,
-    });
+    if (group.type === GroupType.SHARED) {
+      await this.publishRealtimeEvent({
+        type: TodoListRealtimeEventType.TODO_CREATED,
+        todoListId,
+        todoId: todo.id,
+      });
+    }
 
     this.logger.log('Todo created', { todoId: todo.id, todoListId, userId }, TodoService.name);
 
@@ -79,7 +82,7 @@ export class TodoService {
     todoId: string,
     input: UpdateTodoCompletionDto,
   ): Promise<TodoResult> {
-    const { todo, groupId } = await this.findByIdWithGroup(userId, todoId);
+    const { todo, groupId, groupType } = await this.findByIdWithGroup(userId, todoId);
     const completedAt = input.completed ? now().toDate() : null;
     const status = input.completed ? TodoStatus.COMPLETED : TodoStatus.ACTIVE;
     const transition = await this.prisma.$transaction(async (transaction) => {
@@ -111,7 +114,7 @@ export class TodoService {
       return { todo: updatedTodo, transitioned: transition.transitioned };
     });
 
-    if (transition.transitioned) {
+    if (transition.transitioned && groupType === GroupType.SHARED) {
       await this.publishRealtimeEvent({
         type: TodoListRealtimeEventType.TODO_COMPLETION_CHANGED,
         todoListId: todo.todoListId,
@@ -135,7 +138,7 @@ export class TodoService {
       });
     }
 
-    const { todo, groupId } = await this.findByIdWithGroup(userId, todoId);
+    const { todo, groupId, groupType } = await this.findByIdWithGroup(userId, todoId);
     const transition = await this.prisma.$transaction(async (transaction) => {
       const result = await this.todos.reorder(
         todo.id,
@@ -164,11 +167,13 @@ export class TodoService {
     });
 
     if (transition.kind === 'reordered') {
-      await this.publishRealtimeEvent({
-        type: TodoListRealtimeEventType.TODO_REORDERED,
-        todoListId: todo.todoListId,
-        todoId: transition.todo.id,
-      });
+      if (groupType === GroupType.SHARED) {
+        await this.publishRealtimeEvent({
+          type: TodoListRealtimeEventType.TODO_REORDERED,
+          todoListId: todo.todoListId,
+          todoId: transition.todo.id,
+        });
+      }
       this.logger.log(
         'Todo reordered',
         { todoId, todoListId: todo.todoListId, userId, beforeTodoId: input.beforeTodoId },
@@ -214,8 +219,8 @@ export class TodoService {
     }
 
     try {
-      const todoList = await this.todoLists.findById(userId, todo.todoListId);
-      return { todo, groupId: todoList.groupId };
+      const { group, todoList } = await this.todoLists.findByIdWithGroup(userId, todo.todoListId);
+      return { todo, groupId: todoList.groupId, groupType: group.type };
     } catch (error: unknown) {
       if (error instanceof GlobalException && error.code === ErrorCode.TODO_LIST_NOT_FOUND) {
         throw this.notFound(todoId, userId);

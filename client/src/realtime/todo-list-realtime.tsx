@@ -36,7 +36,6 @@ function TodoListRealtimeSubscriber({
   currentTodoIds.current = todoIds;
 
   const invalidateTodos = (message: Message) => {
-    console.log('TodoListRealtimeSubscriber: Received message', message);
     if (!isTodoListRealtimeEvent(message.data)) return;
     if (message.name !== message.data.type || message.data.todoListId !== todoListId) return;
 

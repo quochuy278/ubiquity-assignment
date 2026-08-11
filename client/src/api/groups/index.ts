@@ -2,8 +2,8 @@ export { groupsApi, subtasksApi, todoListsApi, todosApi } from './api';
 export {
   useCreateGroupMutation,
   useCreateSubtaskMutation,
-  useCreateTodoMutation,
   useCreateTodoListMutation,
+  useCreateTodoMutation,
   useGroupQuery,
   useGroupsQuery,
   useReorderTodoMutation,

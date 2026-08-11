@@ -2,14 +2,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups';
 import {
-  GroupType,
   type GroupResponseDto,
-  TodoStatus,
+  GroupType,
   type TodoListResponseDto,
   type TodoResponseDto,
+  TodoStatus,
 } from '@/api/generated';
+import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups';
 import { queryKeys } from '@/api/query-keys';
 import { TodoListPage } from '@/features/groups';
 

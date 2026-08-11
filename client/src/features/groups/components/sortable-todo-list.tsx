@@ -3,7 +3,7 @@ import { isSortableOperation, useSortable } from '@dnd-kit/react/sortable';
 import { CircleCheckIcon, GripVerticalIcon } from 'lucide-react';
 import { useRef } from 'react';
 import { getApiErrorMessage } from '@/api/errors';
-import { TodoStatus, type TodoResponseDto } from '@/api/generated';
+import { type TodoResponseDto, TodoStatus } from '@/api/generated';
 import { TodoCompletionControl } from '@/features/groups/components/todo-completion-control';
 import { TodoSubtasks } from '@/features/groups/components/todo-subtasks';
 import { useReorderTodo } from '@/features/groups/hooks';

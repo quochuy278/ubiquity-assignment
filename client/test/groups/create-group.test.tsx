@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { type GroupResponseDto, GroupType } from '@/api/generated';
 import { groupsApi } from '@/api/groups';
-import { GroupType, type GroupResponseDto } from '@/api/generated';
 import { queryKeys } from '@/api/query-keys';
 import { GroupsPage } from '@/features/groups';
 
@@ -40,6 +40,21 @@ async function openAndFillCreateGroupForm(user: ReturnType<typeof userEvent.setu
 
 describe('create group', () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it('defaults to a personal group and explains the shared-group limitation', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({ data: [] } as never);
+    renderGroupsPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Create group' }));
+
+    expect(screen.getByLabelText('Type')).toHaveValue(GroupType.Personal);
+    expect(
+      screen.getByText(
+        'Shared groups sync changes for existing members. Adding members is not available in the app.',
+      ),
+    ).toBeInTheDocument();
+  });
 
   it('creates a group, updates the cached list, and invalidates it', async () => {
     const user = userEvent.setup();

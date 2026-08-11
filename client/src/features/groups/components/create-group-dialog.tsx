@@ -2,7 +2,7 @@ import { GroupType } from '@/api/generated';
 import { FormDialog } from '@/features/groups/components/form-dialog';
 import { useCreateGroup } from '@/features/groups/hooks';
 import { Button } from '@/shared/components/ui/button';
-import { Field, FieldLabel } from '@/shared/components/ui/field';
+import { Field, FieldDescription, FieldLabel } from '@/shared/components/ui/field';
 import { Input } from '@/shared/components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/shared/components/ui/native-select';
 import { toast } from '@/shared/components/ui/toast';
@@ -38,10 +38,14 @@ export function CreateGroupDialog() {
       </Field>
       <Field>
         <FieldLabel htmlFor="group-type">Type</FieldLabel>
-        <NativeSelect id="group-type" name="type" defaultValue={GroupType.Shared}>
-          <NativeSelectOption value={GroupType.Shared}>Shared</NativeSelectOption>
+        <NativeSelect id="group-type" name="type" defaultValue={GroupType.Personal}>
           <NativeSelectOption value={GroupType.Personal}>Personal</NativeSelectOption>
+          <NativeSelectOption value={GroupType.Shared}>Shared</NativeSelectOption>
         </NativeSelect>
+        <FieldDescription>
+          Shared groups sync changes for existing members. Adding members is not available in the
+          app.
+        </FieldDescription>
       </Field>
     </FormDialog>
   );

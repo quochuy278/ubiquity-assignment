@@ -86,8 +86,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
+      - name: Validate formatting and linting
+        run: pnpm lint:ci
 
   tests:
     name: 03 Tests

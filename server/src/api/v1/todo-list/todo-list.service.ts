@@ -12,7 +12,7 @@ import { GroupType } from '../group/group.constants';
 import { GroupService } from '../group/group.service';
 import type { CreateTodoListDto } from './dto/create-todo-list.dto';
 import { TodoListRepository } from './repositories/todo-list.repository';
-import type { TodoListResult } from './todo-list.types';
+import type { TodoListAccessResult, TodoListResult } from './todo-list.types';
 
 @Injectable()
 export class TodoListService {
@@ -67,6 +67,11 @@ export class TodoListService {
   }
 
   async findById(userId: string, todoListId: string): Promise<TodoListResult> {
+    const { todoList } = await this.findByIdWithGroup(userId, todoListId);
+    return todoList;
+  }
+
+  async findByIdWithGroup(userId: string, todoListId: string): Promise<TodoListAccessResult> {
     const todoList = await this.todoLists.findById(todoListId);
 
     if (!todoList) {
@@ -74,7 +79,8 @@ export class TodoListService {
     }
 
     try {
-      await this.groups.findById(userId, todoList.groupId);
+      const group = await this.groups.findById(userId, todoList.groupId);
+      return { group, todoList };
     } catch (error: unknown) {
       if (error instanceof GlobalException && error.code === ErrorCode.GROUP_NOT_FOUND) {
         throw this.notFound(todoListId, userId);
@@ -82,8 +88,6 @@ export class TodoListService {
 
       throw error;
     }
-
-    return todoList;
   }
 
   private async publishRealtimeEvent(event: GroupRealtimeEvent): Promise<void> {

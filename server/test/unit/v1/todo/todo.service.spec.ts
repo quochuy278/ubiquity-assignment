@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 import type { ActivityService } from '../../../../src/api/v1/activity/activity.service';
+import { GroupType } from '../../../../src/api/v1/group/group.constants';
 import type { TodoRepository } from '../../../../src/api/v1/todo/repositories/todo.repository';
 import { TodoStatus } from '../../../../src/api/v1/todo/todo.constants';
 import { TodoService } from '../../../../src/api/v1/todo/todo.service';
@@ -45,7 +46,10 @@ describe('Todo use-case behavior and authorization', () => {
   const log = jest.fn();
   const warn = jest.fn();
   const publishTodoListEvent = jest.fn();
-  const todoLists = { findById: findTodoListById } as unknown as TodoListService;
+  const todoLists = {
+    findById: findTodoListById,
+    findByIdWithGroup: findTodoListById,
+  } as unknown as TodoListService;
   const todos = {
     createWithTransaction: createTodo,
     findByTodoListId,
@@ -66,7 +70,10 @@ describe('Todo use-case behavior and authorization', () => {
       (callback: (client: typeof transactionClient) => Promise<unknown>) =>
         callback(transactionClient),
     );
-    findTodoListById.mockResolvedValue({ id: 'list-1', groupId: 'group-1' });
+    findTodoListById.mockResolvedValue({
+      group: { id: 'group-1', type: GroupType.SHARED },
+      todoList: { id: 'list-1', groupId: 'group-1' },
+    });
     publishTodoListEvent.mockResolvedValue(undefined);
   });
 
@@ -115,6 +122,18 @@ describe('Todo use-case behavior and authorization', () => {
       todoListId: 'list-1',
       todoId: 'todo-1',
     });
+  });
+
+  it('does not publish todo creation for a PERSONAL Group', async () => {
+    findTodoListById.mockResolvedValue({
+      group: { id: 'group-1', type: GroupType.PERSONAL },
+      todoList: { id: 'list-1', groupId: 'group-1' },
+    });
+    createTodo.mockResolvedValue(todo);
+
+    await service.create('user-1', 'list-1', { title: 'Buy groceries' });
+
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('does not query or create todos when todo-list access is denied', async () => {
@@ -269,6 +288,21 @@ describe('Todo use-case behavior and authorization', () => {
     });
   });
 
+  it('does not publish todo completion changes for a PERSONAL Group', async () => {
+    const completedTodo = { ...todo, status: TodoStatus.COMPLETED };
+    findTodoListById.mockResolvedValue({
+      group: { id: 'group-1', type: GroupType.PERSONAL },
+      todoList: { id: 'list-1', groupId: 'group-1' },
+    });
+    findTodoById.mockResolvedValue(todo);
+    updateCompletion.mockResolvedValue({ todo: completedTodo, transitioned: true });
+
+    await service.updateCompletion('user-1', 'todo-1', { completed: true });
+
+    expect(recordActivity).toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
   it('returns the current todo without activity when completion is already at the target state', async () => {
     const completedTodo = {
       ...todo,
@@ -363,6 +397,21 @@ describe('Todo use-case behavior and authorization', () => {
     await service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-2' });
 
     expect(publishTodoListEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not publish todo reorder for a PERSONAL Group', async () => {
+    const reorderedTodo = { ...todo, rank: new Prisma.Decimal(1500) };
+    findTodoListById.mockResolvedValue({
+      group: { id: 'group-1', type: GroupType.PERSONAL },
+      todoList: { id: 'list-1', groupId: 'group-1' },
+    });
+    findTodoById.mockResolvedValue(todo);
+    reorderTodo.mockResolvedValue({ kind: 'reordered', todo: reorderedTodo });
+
+    await service.reorder('user-1', 'todo-1', { beforeTodoId: 'todo-2' });
+
+    expect(recordActivity).toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('returns a no-op reorder without activity or mutation logging', async () => {

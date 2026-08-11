@@ -1,2 +1,4 @@
+.gitattributes text eol=lf
 server/** text eol=lf
+client/** text eol=lf
 .github/** text eol=lf

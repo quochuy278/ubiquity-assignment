@@ -1,4 +1,5 @@
 import type { Todo } from '@prisma/client';
+import type { GroupType } from '../group/group.constants';
 
 export interface CreateTodoInput {
   title: string;
@@ -33,4 +34,5 @@ export type TodoResult = Todo;
 export interface TodoAccessResult {
   todo: TodoResult;
   groupId: string;
+  groupType: GroupType;
 }

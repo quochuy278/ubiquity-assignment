@@ -9,8 +9,8 @@ export {
   useTodoList,
   useTodoLists,
   useTodos,
-  useUpdateTodoCompletion,
   useUpdateSubtaskCompletion,
+  useUpdateTodoCompletion,
 } from './hooks';
 export { GroupPage } from './pages/group-page';
 export { GroupsPage } from './pages/groups-page';

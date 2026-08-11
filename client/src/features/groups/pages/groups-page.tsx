@@ -40,10 +40,7 @@ export function GroupsPage() {
                         {group.type === GroupType.Shared ? 'Shared' : 'Personal'}
                       </p>
                     </div>
-                    <ChevronRightIcon
-                      className="size-4 text-muted-foreground"
-                      aria-hidden="true"
-                    />
+                    <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
                   </CardHeader>
                 </Card>
               </Link>

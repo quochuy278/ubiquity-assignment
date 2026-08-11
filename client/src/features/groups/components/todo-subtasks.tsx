@@ -1,5 +1,5 @@
-import { getApiErrorMessage } from '@/api/errors';
 import { CircleCheckIcon, CircleIcon } from 'lucide-react';
+import { getApiErrorMessage } from '@/api/errors';
 import { CreateSubtaskDialog } from '@/features/groups/components/create-subtask-dialog';
 import { SubtaskCompletionControl } from '@/features/groups/components/subtask-completion-control';
 import { useSubtasks } from '@/features/groups/hooks';

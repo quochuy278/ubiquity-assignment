@@ -1,4 +1,5 @@
 import type { TodoList } from '@prisma/client';
+import type { GroupResult } from '../group/group.types';
 
 export interface CreateTodoListInput {
   name: string;
@@ -7,3 +8,8 @@ export interface CreateTodoListInput {
 }
 
 export type TodoListResult = TodoList;
+
+export interface TodoListAccessResult {
+  group: GroupResult;
+  todoList: TodoListResult;
+}

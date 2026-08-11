@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { type GroupResponseDto, GroupType, type TodoListResponseDto } from '@/api/generated';
 import { groupsApi, todoListsApi, todosApi } from '@/api/groups';
-import { GroupType, type GroupResponseDto, type TodoListResponseDto } from '@/api/generated';
 import { GroupPage, TodoListPage } from '@/features/groups';
 
 const groupId = 'group-1';
@@ -85,13 +85,8 @@ describe('Groups hierarchy breadcrumbs', () => {
       'href',
       `/groups/${groupId}`,
     );
-    expect(within(breadcrumb).getByText(todoList.name)).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    expect(
-      within(breadcrumb).queryByRole('link', { name: todoList.name }),
-    ).not.toBeInTheDocument();
+    expect(within(breadcrumb).getByText(todoList.name)).toHaveAttribute('aria-current', 'page');
+    expect(within(breadcrumb).queryByRole('link', { name: todoList.name })).not.toBeInTheDocument();
   });
 
   it('renders a valid Todo List direct deep link without pre-populated navigation state', async () => {

@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginForm } from '@/features/auth/components/login-form';
 import { RegisterForm } from '@/features/auth/components/register-form';
@@ -20,8 +19,10 @@ describe('authentication forms', () => {
       </MemoryRouter>,
     );
 
-    await userEvent.type(screen.getByLabelText('Email'), 'reviewer@example.com');
-    await userEvent.type(screen.getByLabelText('Password'), 'secret');
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'reviewer@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'secret' } });
     const form = screen.getByRole('button', { name: 'Sign in' }).closest('form');
     if (!form) throw new Error('Login form not found');
 
@@ -33,7 +34,7 @@ describe('authentication forms', () => {
     expect(onLogin).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: 'Signing in...' })).toBeDisabled();
 
-    rejectLogin(new Error('Invalid credentials'));
+    await act(async () => rejectLogin(new Error('Invalid credentials')));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled());
 
     fireEvent.submit(form);

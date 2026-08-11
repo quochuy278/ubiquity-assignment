@@ -1,5 +1,5 @@
 import { getApiErrorMessage } from '@/api/errors';
-import { TodoStatus, type TodoResponseDto } from '@/api/generated';
+import { type TodoResponseDto, TodoStatus } from '@/api/generated';
 import { useUpdateTodoCompletion } from '@/features/groups/hooks';
 import { SafeButton } from '@/shared/components/safe-button';
 import { toast } from '@/shared/components/ui/toast';

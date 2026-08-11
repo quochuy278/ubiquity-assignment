@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 import type { ActivityService } from '../../../../src/api/v1/activity/activity.service';
+import { GroupType } from '../../../../src/api/v1/group/group.constants';
 import type { SubTaskRepository } from '../../../../src/api/v1/subtask/repositories/subtask.repository';
 import { SubTaskService } from '../../../../src/api/v1/subtask/subtask.service';
 import type { SubTaskResult } from '../../../../src/api/v1/subtask/subtask.types';
@@ -57,6 +58,7 @@ describe('Subtask use-case behavior and authorization', () => {
     findTodoWithGroup.mockResolvedValue({
       todo: { id: 'todo-1', todoListId: 'list-1' },
       groupId: 'group-1',
+      groupType: GroupType.SHARED,
     });
     publishTodoListEvent.mockResolvedValue(undefined);
   });
@@ -83,6 +85,19 @@ describe('Subtask use-case behavior and authorization', () => {
       todoId: 'todo-1',
       subtaskId: 'subtask-1',
     });
+  });
+
+  it('does not publish subtask creation for a PERSONAL Group', async () => {
+    findTodoWithGroup.mockResolvedValue({
+      todo: { id: 'todo-1', todoListId: 'list-1' },
+      groupId: 'group-1',
+      groupType: GroupType.PERSONAL,
+    });
+    createSubTask.mockResolvedValue(subtask);
+
+    await service.create('user-1', 'todo-1', { title: 'Buy milk' });
+
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
   it('does not publish when subtask creation fails inside the transaction', async () => {
@@ -136,6 +151,22 @@ describe('Subtask use-case behavior and authorization', () => {
 
     expect(updateCompletion).toHaveBeenCalled();
     expect(recordActivity).not.toHaveBeenCalled();
+    expect(publishTodoListEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not publish subtask completion changes for a PERSONAL Group', async () => {
+    const completedSubTask = { ...subtask, completed: true };
+    findTodoWithGroup.mockResolvedValue({
+      todo: { id: 'todo-1', todoListId: 'list-1' },
+      groupId: 'group-1',
+      groupType: GroupType.PERSONAL,
+    });
+    findSubTaskById.mockResolvedValue(subtask);
+    updateCompletion.mockResolvedValue({ subtask: completedSubTask, transitioned: true });
+
+    await service.updateCompletion('user-1', 'subtask-1', { completed: true });
+
+    expect(recordActivity).toHaveBeenCalled();
     expect(publishTodoListEvent).not.toHaveBeenCalled();
   });
 
