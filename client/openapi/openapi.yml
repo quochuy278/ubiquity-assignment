@@ -351,6 +351,166 @@ paths:
       security: *a2
       summary: Get a group by ID
       tags: *a3
+  /api/v1/groups/{groupId}/invitations:
+    post:
+      operationId: InvitationController_create_v1
+      parameters:
+        - name: groupId
+          required: true
+          in: path
+          description: Group ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvitationDto"
+      responses:
+        "201":
+          description: The invitation was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "403":
+          description: Only the group owner may create invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: The group or invitee was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The group or invitation state does not allow this invitation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: &a4
+        - bearer: []
+      summary: Invite a registered user to a shared group
+      tags: &a5
+        - invitations
+  /api/v1/invitations:
+    get:
+      operationId: InvitationController_findPending_v1
+      parameters: []
+      responses:
+        "200":
+          description: Pending invitations were retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PendingInvitationResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a4
+      summary: Get the authenticated user's pending invitations
+      tags: *a5
+  /api/v1/invitations/{token}/accept:
+    post:
+      operationId: InvitationController_accept_v1
+      parameters:
+        - name: token
+          required: true
+          in: path
+          description: Invitation token
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The invitation was accepted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponseDto"
+        "400":
+          description: The request failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponseDto"
+        "401":
+          description: The access token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "404":
+          description: A pending invitation was not found for the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: The user is already a member of the group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "500":
+          description: An unexpected internal error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "503":
+          description: The service is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      security: *a4
+      summary: Accept a pending group invitation
+      tags: *a5
   /api/v1/groups/{groupId}/activities:
     get:
       operationId: ActivityController_findForGroup_v1
@@ -468,10 +628,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: &a4
+      security: &a6
         - bearer: []
       summary: Create a todo list within a group
-      tags: &a5
+      tags: &a7
         - todo-lists
     get:
       operationId: TodoListController_findForGroup_v1
@@ -521,9 +681,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a4
+      security: *a6
       summary: Get the todo lists belonging to a group
-      tags: *a5
+      tags: *a7
   /api/v1/lists/{todoListId}:
     get:
       operationId: TodoListController_findById_v1
@@ -571,9 +731,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a4
+      security: *a6
       summary: Get a todo list by ID
-      tags: *a5
+      tags: *a7
   /api/v1/lists/{todoListId}/todos:
     post:
       operationId: TodoController_create_v1
@@ -627,10 +787,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: &a6
+      security: &a8
         - bearer: []
       summary: Create a todo within a todo list
-      tags: &a7
+      tags: &a9
         - todos
     get:
       operationId: TodoController_findForTodoList_v1
@@ -680,9 +840,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a6
+      security: *a8
       summary: Get the todos belonging to a todo list
-      tags: *a7
+      tags: *a9
   /api/v1/todos/{todoId}:
     get:
       operationId: TodoController_findById_v1
@@ -730,9 +890,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a6
+      security: *a8
       summary: Get a todo by ID
-      tags: *a7
+      tags: *a9
     delete:
       operationId: TodoController_delete_v1
       parameters:
@@ -779,9 +939,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a6
+      security: *a8
       summary: Delete a todo
-      tags: *a7
+      tags: *a9
   /api/v1/todos/{todoId}/completion:
     patch:
       operationId: TodoController_updateCompletion_v1
@@ -835,9 +995,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a6
+      security: *a8
       summary: Update a todo's completion state
-      tags: *a7
+      tags: *a9
   /api/v1/todos/{todoId}/reorder:
     patch:
       operationId: TodoController_reorder_v1
@@ -891,9 +1051,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a6
+      security: *a8
       summary: Reorder a todo within its todo list
-      tags: *a7
+      tags: *a9
   /api/v1/todos/{todoId}/subtasks:
     post:
       operationId: SubTaskController_create_v1
@@ -947,10 +1107,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: &a8
+      security: &a10
         - bearer: []
       summary: Create a subtask within a todo
-      tags: &a9
+      tags: &a11
         - subtasks
     get:
       operationId: SubTaskController_findForTodo_v1
@@ -1000,9 +1160,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a8
+      security: *a10
       summary: Get the subtasks belonging to a todo
-      tags: *a9
+      tags: *a11
   /api/v1/subtasks/{subtaskId}:
     get:
       operationId: SubTaskController_findById_v1
@@ -1050,9 +1210,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a8
+      security: *a10
       summary: Get a subtask by ID
-      tags: *a9
+      tags: *a11
     delete:
       operationId: SubTaskController_delete_v1
       parameters:
@@ -1099,9 +1259,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a8
+      security: *a10
       summary: Delete a subtask
-      tags: *a9
+      tags: *a11
   /api/v1/subtasks/{subtaskId}/completion:
     patch:
       operationId: SubTaskController_updateCompletion_v1
@@ -1155,9 +1315,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponseDto"
-      security: *a8
+      security: *a10
       summary: Update a subtask's completion state
-      tags: *a9
+      tags: *a11
 info:
   title: Ubiquity API
   description: Ubiquity Assignment API documentation
@@ -1168,6 +1328,7 @@ tags:
   - name: app
   - name: auth
   - name: groups
+  - name: invitations
   - name: subtasks
   - name: todo-lists
   - name: todos
@@ -1194,6 +1355,12 @@ components:
         - TODO_LIST_NOT_FOUND
         - SUBTASK_NOT_FOUND
         - GROUP_NOT_FOUND
+        - INVITATION_NOT_FOUND
+        - INVITATION_FORBIDDEN
+        - INVITATION_NOT_ALLOWED
+        - INVITEE_NOT_FOUND
+        - GROUP_MEMBER_ALREADY_EXISTS
+        - INVITATION_ALREADY_PENDING
         - EMAIL_ALREADY_REGISTERED
         - INVALID_CREDENTIALS
         - UNAUTHORIZED
@@ -1337,6 +1504,12 @@ components:
       enum:
         - PERSONAL
         - SHARED
+    MembershipRole:
+      type: string
+      enum:
+        - OWNER
+        - ADMIN
+        - MEMBER
     GroupResponseDto:
       type: object
       properties:
@@ -1345,6 +1518,9 @@ components:
         type:
           allOf:
             - $ref: "#/components/schemas/GroupType"
+        currentUserRole:
+          allOf:
+            - $ref: "#/components/schemas/MembershipRole"
         name:
           type: string
         createdById:
@@ -1358,6 +1534,7 @@ components:
       required:
         - id
         - type
+        - currentUserRole
         - name
         - createdById
         - createdAt
@@ -1374,6 +1551,74 @@ components:
       required:
         - type
         - name
+    CreateInvitationDto:
+      type: object
+      properties:
+        email:
+          type: string
+          example: member@example.com
+      required:
+        - email
+    InvitationStatus:
+      type: string
+      enum:
+        - PENDING
+        - ACCEPTED
+    InvitationResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        groupId:
+          type: string
+        email:
+          type: string
+        status:
+          allOf:
+            - $ref: "#/components/schemas/InvitationStatus"
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - groupId
+        - email
+        - status
+        - expiresAt
+        - createdAt
+    PendingInvitationResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        token:
+          type: string
+        groupId:
+          type: string
+        groupName:
+          type: string
+        groupType:
+          allOf:
+            - $ref: "#/components/schemas/GroupType"
+        inviterId:
+          type: string
+        inviterDisplayName:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - token
+        - groupId
+        - groupName
+        - groupType
+        - inviterId
+        - inviterDisplayName
+        - expiresAt
     ActivityType:
       type: string
       enum:

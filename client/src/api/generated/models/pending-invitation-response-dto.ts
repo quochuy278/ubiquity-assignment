@@ -16,18 +16,16 @@
 // May contain unused imports in some cases
 // @ts-ignore
 import type { GroupType } from './group-type';
-// May contain unused imports in some cases
-// @ts-ignore
-import type { MembershipRole } from './membership-role';
 
-export interface GroupResponseDto {
+export interface PendingInvitationResponseDto {
     'id': string;
-    'type': GroupType;
-    'currentUserRole': MembershipRole;
-    'name': string;
-    'createdById': string;
-    'createdAt': string;
-    'updatedAt': string;
+    'token': string;
+    'groupId': string;
+    'groupName': string;
+    'groupType': GroupType;
+    'inviterId': string;
+    'inviterDisplayName': string;
+    'expiresAt': string;
 }
 
 

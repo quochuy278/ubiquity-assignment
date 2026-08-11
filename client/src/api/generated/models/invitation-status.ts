@@ -14,12 +14,13 @@
 
 
 
-export * from './apis/activities-api';
-export * from './apis/app-api';
-export * from './apis/auth-api';
-export * from './apis/groups-api';
-export * from './apis/invitations-api';
-export * from './apis/subtasks-api';
-export * from './apis/todo-lists-api';
-export * from './apis/todos-api';
+
+export const InvitationStatus = {
+    Pending: 'PENDING',
+    Accepted: 'ACCEPTED',
+} as const;
+
+export type InvitationStatus = typeof InvitationStatus[keyof typeof InvitationStatus];
+
+
 
