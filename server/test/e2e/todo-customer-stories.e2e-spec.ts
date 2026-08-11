@@ -5,7 +5,6 @@ import { GroupType } from '../../src/api/v1/group/group.constants';
 import { MembershipRole } from '../../src/api/v1/membership/membership.constants';
 import { TodoStatus } from '../../src/api/v1/todo/todo.constants';
 import { ErrorCode } from '../../src/common/exception/error-code';
-import { PrismaService } from '../../src/shared/database/prisma/prisma.service';
 import { createE2eApplication } from './support/e2e-application';
 import {
   createUniqueName,
@@ -50,11 +49,9 @@ async function registerAndAuthenticate(
 
 describe('Todo customer stories over real HTTP and PostgreSQL', () => {
   let app: INestApplication<App>;
-  let prisma: PrismaService;
 
   beforeAll(async () => {
     app = await createE2eApplication();
-    prisma = app.get(PrismaService);
   });
 
   afterAll(async () => {
@@ -164,10 +161,32 @@ describe('Todo customer stories over real HTTP and PostgreSQL', () => {
       .expect(201);
     const todoId = requireString(todo.body.id, 'private todo ID');
 
-    // And: the second customer is an existing MEMBER of the shared Group.
-    await prisma.membership.create({
-      data: { groupId, userId: member.userId, role: MembershipRole.MEMBER },
-    });
+    // And: the owner invites the registered candidate through the production onboarding flow.
+    await request(app.getHttpServer())
+      .post(`/api/v1/groups/${groupId}/invitations`)
+      .set(owner.authorization)
+      .send({ email: memberInput.email.toUpperCase() })
+      .expect(201);
+
+    const pendingInvitations = await request(app.getHttpServer())
+      .get('/api/v1/invitations')
+      .set(member.authorization)
+      .expect(200);
+    const invitation = pendingInvitations.body.find(
+      (candidate: { groupId?: unknown }) => candidate.groupId === groupId,
+    );
+    const invitationToken = requireString(invitation?.token, 'invitation token');
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/invitations/${invitationToken}/accept`)
+      .set(member.authorization)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: groupId,
+          currentUserRole: MembershipRole.MEMBER,
+        });
+      });
 
     // When/Then: the member can discover the Group and collaborate through nested public APIs.
     await request(app.getHttpServer())

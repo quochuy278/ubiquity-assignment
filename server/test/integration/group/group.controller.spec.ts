@@ -13,6 +13,7 @@ import { GroupType } from '../../../src/api/v1/group/group.constants';
 import { GroupController } from '../../../src/api/v1/group/group.controller';
 import { GroupService } from '../../../src/api/v1/group/group.service';
 import type { GroupResult } from '../../../src/api/v1/group/group.types';
+import { MembershipRole } from '../../../src/api/v1/membership/membership.constants';
 import { ErrorCode } from '../../../src/common/exception/error-code';
 import { GlobalException } from '../../../src/common/exception/global.exception';
 import { GlobalExceptionFilter } from '../../../src/common/exception/global-exception.filter';
@@ -23,6 +24,7 @@ describe('Versioned group HTTP endpoints', () => {
   const createdGroup: GroupResult = {
     id: 'group-1',
     type: GroupType.SHARED,
+    currentUserRole: MembershipRole.OWNER,
     name: 'Family',
     createdById: 'user-1',
     createdAt: dayjs('2026-08-07T10:00:00.000Z').toDate(),
@@ -31,6 +33,7 @@ describe('Versioned group HTTP endpoints', () => {
   const groupResponse = {
     id: 'group-1',
     type: GroupType.SHARED,
+    currentUserRole: MembershipRole.OWNER,
     name: 'Family',
     createdById: 'user-1',
     createdAt: '2026-08-07T10:00:00.000Z',
