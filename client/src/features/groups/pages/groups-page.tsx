@@ -4,6 +4,7 @@ import { GroupType } from '@/api/generated';
 import { CreateGroupDialog } from '@/features/groups/components/create-group-dialog';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { useGroups } from '@/features/groups/hooks';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { ApiError } from '@/shared/components/api-error';
 import { EmptyState } from '@/shared/components/empty-state';
 import { PageLoading } from '@/shared/components/page-loading';
@@ -11,6 +12,7 @@ import { Card, CardHeader, CardTitle } from '@/shared/components/ui/card';
 
 export function GroupsPage() {
   const groups = useGroups();
+  useDocumentTitle('Groups');
 
   if (groups.isPending) return <PageLoading label="Loading groups" />;
   if (groups.isError) return <ApiError error={groups.error} onRetry={() => groups.refetch()} />;

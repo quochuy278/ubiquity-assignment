@@ -16,7 +16,7 @@ export function AppLayout() {
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
           <Link className="flex items-center gap-2 font-semibold" to="/groups">
             <ListTodoIcon className="size-5" aria-hidden="true" />
-            Ubiquity Todos
+            Ubiquity Todo
           </Link>
           <nav className="flex flex-1 items-center" aria-label="Primary navigation">
             <NavLink

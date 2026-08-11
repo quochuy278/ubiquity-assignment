@@ -4,6 +4,7 @@ import { GroupBreadcrumbs } from '@/features/groups/components/group-breadcrumbs
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { SortableTodoList } from '@/features/groups/components/sortable-todo-list';
 import { useGroup, useTodoList, useTodos } from '@/features/groups/hooks';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { TodoListRealtime } from '@/realtime/todo-list-realtime';
 import { ApiError } from '@/shared/components/api-error';
 import { EmptyState } from '@/shared/components/empty-state';
@@ -14,6 +15,8 @@ export function TodoListPage() {
   const group = useGroup(groupId);
   const list = useTodoList(todoListId);
   const todos = useTodos(todoListId);
+  const listTitle = list.isSuccess && list.data.groupId === groupId ? list.data.name : 'Todo List';
+  useDocumentTitle(listTitle);
 
   if (list.isPending) {
     return <PageLoading label="Loading todos" />;

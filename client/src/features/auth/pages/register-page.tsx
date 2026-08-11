@@ -1,9 +1,11 @@
 import { Navigate } from 'react-router-dom';
 import { RegisterForm } from '@/features/auth/components/register-form';
 import { useRegister } from '@/features/auth/hooks';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 
 export function RegisterPage() {
   const register = useRegister();
+  useDocumentTitle('Register');
 
   if (register.isSuccess) {
     return <Navigate to="/groups" replace />;

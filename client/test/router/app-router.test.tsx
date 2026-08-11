@@ -49,6 +49,7 @@ describe('application route authentication', () => {
     renderRoutes('/groups');
 
     expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
+    expect(document.title).toBe('Login | Ubiquity Todo');
   });
 
   it('allows an authenticated user into the application', async () => {
@@ -62,6 +63,7 @@ describe('application route authentication', () => {
 
     expect(await screen.findByRole('heading', { name: 'Groups' })).toBeInTheDocument();
     expect(screen.getByText(testUser.displayName)).toBeInTheDocument();
+    expect(document.title).toBe('Groups | Ubiquity Todo');
   });
 
   it('does not redirect while initial authentication is unresolved', () => {
