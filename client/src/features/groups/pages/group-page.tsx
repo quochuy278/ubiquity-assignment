@@ -1,8 +1,10 @@
 import { ChevronRightIcon, ListTodoIcon } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { GroupType, MembershipRole } from '@/api/generated';
 import { CreateTodoListDialog } from '@/features/groups/components/create-todo-list-dialog';
 import { GroupBreadcrumbs } from '@/features/groups/components/group-breadcrumbs';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
+import { InviteMemberDialog } from '@/features/groups/components/invite-member-dialog';
 import { useGroup, useTodoLists } from '@/features/groups/hooks';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { GroupRealtime } from '@/realtime/group-realtime';
@@ -26,6 +28,12 @@ export function GroupPage() {
       <div className="space-y-4">
         <GroupBreadcrumbs groupId={groupId} groupName={group.data.name} />
         <GroupPageSection title={group.data.name} description="Todo lists in this group.">
+          {group.data.type === GroupType.Shared &&
+            group.data.currentUserRole === MembershipRole.Owner && (
+              <div className="flex justify-end">
+                <InviteMemberDialog groupId={groupId} />
+              </div>
+            )}
           {lists.data.length === 0 ? (
             <EmptyState
               title="No todo lists"

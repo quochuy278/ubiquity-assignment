@@ -13,6 +13,23 @@ import {
   useUpdateSubtaskCompletionMutation,
   useUpdateTodoCompletionMutation,
 } from '@/api/groups';
+import {
+  useAcceptInvitationMutation,
+  useCreateInvitationMutation,
+  usePendingInvitationsQuery,
+} from '@/api/invitations';
+
+export function useCreateInvitation(groupId: string) {
+  return useCreateInvitationMutation(groupId);
+}
+
+export function usePendingInvitations() {
+  return usePendingInvitationsQuery();
+}
+
+export function useAcceptInvitation() {
+  return useAcceptInvitationMutation();
+}
 
 export function useCreateGroup() {
   return useCreateGroupMutation();

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { GroupType } from '@/api/generated';
 import { CreateGroupDialog } from '@/features/groups/components/create-group-dialog';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
+import { PendingInvitations } from '@/features/groups/components/pending-invitations';
 import { useGroups } from '@/features/groups/hooks';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { ApiError } from '@/shared/components/api-error';
@@ -19,6 +20,7 @@ export function GroupsPage() {
 
   return (
     <GroupPageSection title="Groups" description="Your personal and shared workspaces.">
+      <PendingInvitations />
       {groups.data.length === 0 ? (
         <EmptyState
           title="No groups yet"

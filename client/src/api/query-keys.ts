@@ -6,6 +6,9 @@ export const queryKeys = {
     all: ['groups'] as const,
     detail: (groupId: string) => ['groups', groupId] as const,
   },
+  invitations: {
+    pending: ['invitations', 'pending'] as const,
+  },
   todoLists: {
     forGroup: (groupId: string) => ['groups', groupId, 'todo-lists'] as const,
     detail: (todoListId: string) => ['todo-lists', todoListId] as const,

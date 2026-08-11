@@ -43,8 +43,7 @@ export function CreateGroupDialog() {
           <NativeSelectOption value={GroupType.Shared}>Shared</NativeSelectOption>
         </NativeSelect>
         <FieldDescription>
-          Shared groups sync changes for existing members. Adding members is not available in the
-          app.
+          Shared groups let you invite registered users and sync collaborative changes.
         </FieldDescription>
       </Field>
     </FormDialog>
