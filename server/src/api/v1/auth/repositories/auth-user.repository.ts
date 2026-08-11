@@ -32,6 +32,13 @@ export class AuthUserRepository {
     });
   }
 
+  findByEmail(email: string): Promise<PublicUser | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: PUBLIC_USER_SELECT,
+    });
+  }
+
   findById(userId: string): Promise<PublicUser | null> {
     return this.prisma.user.findUnique({
       where: { id: userId },

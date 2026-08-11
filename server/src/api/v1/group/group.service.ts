@@ -3,6 +3,7 @@ import { ErrorCode } from '../../../common/exception/error-code';
 import { GlobalException } from '../../../common/exception/global.exception';
 import { ApplicationLoggerService } from '../../../common/logger/logger.service';
 import { PrismaService } from '../../../shared/database/prisma/prisma.service';
+import { MembershipRole } from '../membership/membership.constants';
 import { MembershipService } from '../membership/membership.service';
 import type { CreateGroupDto } from './dto/create-group.dto';
 import type { GroupResult } from './group.types';
@@ -22,7 +23,7 @@ export class GroupService {
       const createdGroup = await this.groups.create(input, userId, transaction);
       await this.memberships.createOwner(createdGroup.id, userId, transaction);
 
-      return createdGroup;
+      return { ...createdGroup, currentUserRole: MembershipRole.OWNER };
     });
 
     this.logger.log('Group created', { groupId: group.id, userId }, GroupService.name);
@@ -31,15 +32,20 @@ export class GroupService {
   }
 
   async findForUser(userId: string): Promise<GroupResult[]> {
-    const groupIds = await this.memberships.findGroupIds(userId);
+    const memberships = await this.memberships.findForUser(userId);
+    const groups = await this.groups.findByIds(memberships.map(({ groupId }) => groupId));
+    const roleByGroupId = new Map(memberships.map(({ groupId, role }) => [groupId, role]));
 
-    return this.groups.findByIds(groupIds);
+    return groups.map((group) => ({
+      ...group,
+      currentUserRole: roleByGroupId.get(group.id) as MembershipRole,
+    }));
   }
 
   async findById(userId: string, groupId: string): Promise<GroupResult> {
-    const isMember = await this.memberships.isMember(groupId, userId);
+    const role = await this.memberships.findRole(groupId, userId);
 
-    if (!isMember) {
+    if (!role) {
       throw new GlobalException(ErrorCode.GROUP_NOT_FOUND, { groupId, userId });
     }
 
@@ -49,6 +55,6 @@ export class GroupService {
       throw new GlobalException(ErrorCode.GROUP_NOT_FOUND, { groupId, userId });
     }
 
-    return group;
+    return { ...group, currentUserRole: role };
   }
 }
