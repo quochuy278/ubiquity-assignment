@@ -2,15 +2,16 @@ import type { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 import { GroupType } from '../../../../src/api/v1/group/group.constants';
 import { GroupService } from '../../../../src/api/v1/group/group.service';
-import type { GroupResult } from '../../../../src/api/v1/group/group.types';
+import type { GroupRecord } from '../../../../src/api/v1/group/group.types';
 import type { GroupRepository } from '../../../../src/api/v1/group/repositories/group.repository';
+import { MembershipRole } from '../../../../src/api/v1/membership/membership.constants';
 import type { MembershipService } from '../../../../src/api/v1/membership/membership.service';
 import { ErrorCode } from '../../../../src/common/exception/error-code';
 import type { ApplicationLoggerService } from '../../../../src/common/logger/logger.service';
 import type { PrismaService } from '../../../../src/shared/database/prisma/prisma.service';
 
 describe('Group use-case orchestration', () => {
-  const group: GroupResult = {
+  const group: GroupRecord = {
     id: 'group-1',
     type: GroupType.SHARED,
     name: 'Family',
@@ -18,8 +19,8 @@ describe('Group use-case orchestration', () => {
     createdAt: dayjs('2026-08-07T10:00:00.000Z').toDate(),
     updatedAt: dayjs('2026-08-07T10:00:00.000Z').toDate(),
   };
-  const findGroupIds = jest.fn();
-  const isMember = jest.fn();
+  const findForUser = jest.fn();
+  const findRole = jest.fn();
   const createOwner = jest.fn();
   const createGroup = jest.fn();
   const findByIds = jest.fn();
@@ -29,8 +30,8 @@ describe('Group use-case orchestration', () => {
   const transaction = {} as Prisma.TransactionClient;
   const memberships = {
     createOwner,
-    findGroupIds,
-    isMember,
+    findForUser,
+    findRole,
   } as unknown as MembershipService;
   const groups = { create: createGroup, findByIds, findById } as unknown as GroupRepository;
   const prisma = { $transaction: runTransaction } as unknown as PrismaService;
@@ -50,7 +51,10 @@ describe('Group use-case orchestration', () => {
 
     await expect(
       service.create('user-1', { type: GroupType.SHARED, name: 'Family' }),
-    ).resolves.toEqual(group);
+    ).resolves.toEqual({
+      ...group,
+      currentUserRole: MembershipRole.OWNER,
+    });
 
     expect(runTransaction).toHaveBeenCalledTimes(1);
     expect(createGroup).toHaveBeenCalledWith(
@@ -86,27 +90,32 @@ describe('Group use-case orchestration', () => {
   });
 
   it("loads only the authenticated user's groups through MembershipService", async () => {
-    findGroupIds.mockResolvedValue(['group-1']);
+    findForUser.mockResolvedValue([{ groupId: 'group-1', role: MembershipRole.MEMBER }]);
     findByIds.mockResolvedValue([group]);
 
-    await expect(service.findForUser('user-1')).resolves.toEqual([group]);
+    await expect(service.findForUser('user-1')).resolves.toEqual([
+      { ...group, currentUserRole: MembershipRole.MEMBER },
+    ]);
 
-    expect(findGroupIds).toHaveBeenCalledWith('user-1');
+    expect(findForUser).toHaveBeenCalledWith('user-1');
     expect(findByIds).toHaveBeenCalledWith(['group-1']);
   });
 
   it('returns a group when the authenticated user is a member', async () => {
-    isMember.mockResolvedValue(true);
+    findRole.mockResolvedValue(MembershipRole.MEMBER);
     findById.mockResolvedValue(group);
 
-    await expect(service.findById('user-1', 'group-1')).resolves.toEqual(group);
+    await expect(service.findById('user-1', 'group-1')).resolves.toEqual({
+      ...group,
+      currentUserRole: MembershipRole.MEMBER,
+    });
 
-    expect(isMember).toHaveBeenCalledWith('group-1', 'user-1');
+    expect(findRole).toHaveBeenCalledWith('group-1', 'user-1');
     expect(findById).toHaveBeenCalledWith('group-1');
   });
 
   it('hides the group when the authenticated user is not a member', async () => {
-    isMember.mockResolvedValue(false);
+    findRole.mockResolvedValue(null);
 
     await expect(service.findById('user-2', 'group-1')).rejects.toMatchObject({
       code: ErrorCode.GROUP_NOT_FOUND,
@@ -117,7 +126,7 @@ describe('Group use-case orchestration', () => {
   });
 
   it('returns group not found when a membership references a missing group', async () => {
-    isMember.mockResolvedValue(true);
+    findRole.mockResolvedValue(MembershipRole.OWNER);
     findById.mockResolvedValue(null);
 
     await expect(service.findById('user-1', 'group-1')).rejects.toMatchObject({
