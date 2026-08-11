@@ -4,6 +4,7 @@ import { GroupPage } from '@/features/groups/pages/group-page';
 import { GroupsPage } from '@/features/groups/pages/groups-page';
 import { TodoListPage } from '@/features/groups/pages/todo-list-page';
 import { AppLayout } from '@/layouts/app-layout';
+import { NotFoundPage } from '@/router/not-found-page';
 import { ProtectedRoute, PublicOnlyRoute } from '@/router/route-guards';
 
 export function AppRouter() {
@@ -21,7 +22,7 @@ export function AppRouter() {
           <Route path="/groups/:groupId/lists/:todoListId" element={<TodoListPage />} />
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

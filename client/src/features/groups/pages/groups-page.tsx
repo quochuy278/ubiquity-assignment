@@ -51,8 +51,10 @@ export function GroupsPage() {
               <Card className="h-full transition-colors hover:bg-muted/40">
                 <CardHeader className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
                   <UsersIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-                  <div>
-                    <CardTitle>{group.name}</CardTitle>
+                  <div className="min-w-0">
+                    <CardTitle className="truncate" title={group.name}>
+                      {group.name}
+                    </CardTitle>
                     <p className="mt-1 text-muted-foreground text-xs">
                       {group.type === GroupType.Shared ? 'Shared' : 'Personal'}
                     </p>

@@ -241,8 +241,11 @@ describe('create todo', () => {
         description: createdTodo.description,
       },
     });
-    expect(await screen.findByText(createdTodo.title)).toBeInTheDocument();
-    expect(screen.getByText(createdTodo.description ?? '')).toBeInTheDocument();
+    const renderedTitle = await screen.findByText(createdTodo.title);
+    const renderedDescription = screen.getByText(createdTodo.description ?? '');
+    expect(renderedTitle).toHaveClass('[overflow-wrap:anywhere]');
+    expect(renderedTitle).toHaveAttribute('title', createdTodo.title);
+    expect(renderedDescription).toHaveClass('whitespace-pre-wrap', '[overflow-wrap:anywhere]');
     expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument();
     expect(screen.queryByText('10')).not.toBeInTheDocument();
     expect(queryClient.getQueryData(queryKeys.todos.forList(todoListId))).toEqual([

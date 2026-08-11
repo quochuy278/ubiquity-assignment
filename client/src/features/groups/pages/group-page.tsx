@@ -65,7 +65,9 @@ export function GroupPage() {
                     <Card className="mb-3 transition-colors hover:bg-muted/40">
                       <CardContent className="flex items-center gap-3">
                         <ListTodoIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-                        <span className="flex-1 font-medium">{list.name}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium" title={list.name}>
+                          {list.name}
+                        </span>
                         <ChevronRightIcon
                           className="size-4 text-muted-foreground"
                           aria-hidden="true"

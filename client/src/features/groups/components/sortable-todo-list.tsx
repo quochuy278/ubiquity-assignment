@@ -42,7 +42,7 @@ function SortableTodoCard({
     <Card ref={ref} size="sm" className={isDragging ? 'opacity-70' : undefined}>
       <CardContent className="space-y-4">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-2">
+          <div className="flex min-w-0 flex-1 items-start gap-2">
             <Button
               ref={handleRef}
               type="button"
@@ -62,16 +62,21 @@ function SortableTodoCard({
               />
             )}
             {isCompleted && <span className="sr-only">Completed</span>}
-            <div>
+            <div className="min-w-0 flex-1">
               <p
+                title={todo.title}
                 className={
-                  isCompleted ? 'text-muted-foreground font-medium line-through' : 'font-medium'
+                  isCompleted
+                    ? 'font-medium text-muted-foreground line-through [overflow-wrap:anywhere]'
+                    : 'font-medium [overflow-wrap:anywhere]'
                 }
               >
                 {todo.title}
               </p>
               {todo.description && (
-                <p className="mt-1 text-muted-foreground text-sm">{todo.description}</p>
+                <p className="mt-1 whitespace-pre-wrap text-muted-foreground text-sm [overflow-wrap:anywhere]">
+                  {todo.description}
+                </p>
               )}
             </div>
           </div>

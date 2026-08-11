@@ -93,6 +93,8 @@ describe('create todo list', () => {
       createTodoListDto: { name: createdTodoList.name },
     });
     expect(await screen.findByRole('link', { name: createdTodoList.name })).toBeInTheDocument();
+    expect(screen.getByText(createdTodoList.name)).toHaveClass('truncate');
+    expect(screen.getByText(createdTodoList.name)).toHaveAttribute('title', createdTodoList.name);
     expect(queryClient.getQueryData(queryKeys.todoLists.forGroup(groupId))).toEqual([
       createdTodoList,
     ]);

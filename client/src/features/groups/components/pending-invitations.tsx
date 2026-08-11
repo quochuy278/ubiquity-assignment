@@ -59,10 +59,13 @@ export function PendingInvitations() {
           <CardContent className="flex flex-wrap items-center gap-3">
             <MailIcon className="size-5 text-muted-foreground" aria-hidden="true" />
             <div className="min-w-0 flex-1">
-              <p className="font-medium">{invitation.groupName}</p>
-              <p className="text-muted-foreground text-sm">
-                Invited by {invitation.inviterDisplayName} · expires{' '}
-                {formatDistanceToNow(new Date(invitation.expiresAt), { addSuffix: true })}
+              <p className="truncate font-medium" title={invitation.groupName}>
+                {invitation.groupName}
+              </p>
+              <p className="text-muted-foreground text-sm [overflow-wrap:anywhere]">
+                Invited by{' '}
+                <span title={invitation.inviterDisplayName}>{invitation.inviterDisplayName}</span> ·
+                expires {formatDistanceToNow(new Date(invitation.expiresAt), { addSuffix: true })}
               </p>
             </div>
             <SafeButton

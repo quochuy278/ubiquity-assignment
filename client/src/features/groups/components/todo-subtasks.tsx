@@ -50,7 +50,7 @@ export function TodoSubtasks({ todoId }: { todoId: string }) {
           <ul className="divide-y">
             {subtasks.map((subtask) => (
               <li key={subtask.id} className="flex min-h-9 items-center justify-between gap-3 py-2">
-                <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   {subtask.completed ? (
                     <CircleCheckIcon
                       className="size-4 shrink-0 text-green-600"
@@ -64,8 +64,11 @@ export function TodoSubtasks({ todoId }: { todoId: string }) {
                   )}
                   {subtask.completed && <span className="sr-only">Completed</span>}
                   <span
+                    title={subtask.title}
                     className={
-                      subtask.completed ? 'text-muted-foreground text-sm line-through' : 'text-sm'
+                      subtask.completed
+                        ? 'min-w-0 text-muted-foreground text-sm line-through [overflow-wrap:anywhere]'
+                        : 'min-w-0 text-sm [overflow-wrap:anywhere]'
                     }
                   >
                     {subtask.title}

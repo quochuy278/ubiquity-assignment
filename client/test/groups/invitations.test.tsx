@@ -139,8 +139,11 @@ describe('shared-group invitations', () => {
     expect(await screen.findByText('Pending invitations')).toBeInTheDocument();
     expect(screen.getByText('Create your first list')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create my first list' })).toBeInTheDocument();
-    expect(screen.getByText(ownerGroup.name)).toBeInTheDocument();
-    expect(screen.getByText(/Invited by Alex Owner/)).toBeInTheDocument();
+    expect(screen.getByText(ownerGroup.name)).toHaveClass('truncate');
+    expect(screen.getByText(ownerGroup.name)).toHaveAttribute('title', ownerGroup.name);
+    const inviterName = screen.getByText(pending.inviterDisplayName);
+    expect(inviterName).toHaveAttribute('title', pending.inviterDisplayName);
+    expect(inviterName.parentElement).toHaveClass('[overflow-wrap:anywhere]');
     await user.click(screen.getByRole('button', { name: 'Accept' }));
 
     expect(accept).toHaveBeenCalledWith({ token: pending.token });

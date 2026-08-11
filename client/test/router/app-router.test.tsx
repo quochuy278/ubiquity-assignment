@@ -71,7 +71,8 @@ describe('application route authentication', () => {
     renderRoutes('/groups');
 
     expect(await screen.findByRole('heading', { name: 'Welcome' })).toBeInTheDocument();
-    expect(screen.getByText(testUser.displayName)).toBeInTheDocument();
+    expect(screen.getByText(testUser.displayName)).toHaveClass('truncate');
+    expect(screen.getByText(testUser.displayName)).toHaveAttribute('title', testUser.displayName);
     expect(document.title).toBe('Lists | Ubiquity Todo');
   });
 
@@ -98,5 +99,13 @@ describe('application route authentication', () => {
     renderRoutes('/login');
 
     expect(await screen.findByRole('heading', { name: 'Welcome' })).toBeInTheDocument();
+  });
+
+  it('renders a not-found page for an unknown route', () => {
+    renderRoutes('/this-page-does-not-exist');
+
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Return home' })).toHaveAttribute('href', '/');
+    expect(document.title).toBe('Page not found | Ubiquity Todo');
   });
 });

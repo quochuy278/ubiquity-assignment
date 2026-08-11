@@ -107,7 +107,9 @@ describe('subtasks', () => {
       todoId,
       createSubTaskDto: { title: createdSubtask.title },
     });
-    expect(await screen.findByText(createdSubtask.title)).toBeInTheDocument();
+    const renderedSubtask = await screen.findByText(createdSubtask.title);
+    expect(renderedSubtask).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
+    expect(renderedSubtask).toHaveAttribute('title', createdSubtask.title);
     expect(queryClient.getQueryData(queryKeys.subtasks.forTodo(todoId))).toEqual([
       activeSubtask,
       createdSubtask,

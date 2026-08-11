@@ -92,6 +92,8 @@ describe('create group', () => {
       createGroupDto: { name: createdGroup.name, type: GroupType.Shared },
     });
     expect(await screen.findByRole('link', { name: /Product team/ })).toBeInTheDocument();
+    expect(screen.getByText(createdGroup.name)).toHaveClass('truncate');
+    expect(screen.getByText(createdGroup.name)).toHaveAttribute('title', createdGroup.name);
     expect(screen.getByText('Shared')).toBeInTheDocument();
     expect(screen.queryByText(GroupType.Shared)).not.toBeInTheDocument();
     expect(queryClient.getQueryData(queryKeys.groups.all)).toEqual([existingGroup, createdGroup]);

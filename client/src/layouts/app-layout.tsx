@@ -14,7 +14,7 @@ export function AppLayout() {
     <div className="min-h-svh bg-background text-foreground">
       <header className="border-b">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
-          <Link className="flex items-center gap-2 font-semibold" to="/groups">
+          <Link className="flex shrink-0 items-center gap-2 font-semibold" to="/groups">
             <ListTodoIcon className="size-5" aria-hidden="true" />
             Ubiquity Todo
           </Link>
@@ -31,7 +31,10 @@ export function AppLayout() {
               Lists
             </NavLink>
           </nav>
-          <span className="hidden text-muted-foreground text-sm sm:inline">
+          <span
+            className="hidden max-w-40 truncate text-muted-foreground text-sm sm:inline"
+            title={currentUser?.displayName}
+          >
             {currentUser?.displayName}
           </span>
           <SafeButton
