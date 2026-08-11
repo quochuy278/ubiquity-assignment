@@ -51,7 +51,8 @@ The complete application can also be tried locally using the steps below. The fr
 ## How to Use It
 
 1. Register a new account or log in.
-2. Create a Group from the Groups page.
+2. Create a Group from the Groups page. An OWNER can invite an existing registered user from a
+   SHARED Group; the invitee accepts from the Groups page.
 3. Open the Group and create a Todo List.
 4. Open the list and add several Todos.
 5. Add Subtasks and complete them to see the progress count change.
@@ -66,7 +67,8 @@ Beyond the selected assignment stories, the application includes:
 - Registration, login, logout, protected data, and refresh-token rotation.
 - Groups and Todo Lists, so Todos have a usable organizational context.
 - Membership-based access isolation between users.
-- Realtime synchronization for existing members of SHARED Groups.
+- Owner-created invitations that onboard existing registered users as SHARED Group members.
+- Realtime synchronization for members of SHARED Groups.
 - Breadcrumb navigation and validation of directly opened Group and Todo List URLs.
 - Activity records for relevant Group, Todo List, Todo, and Subtask changes, exposed through the
   API.
@@ -140,11 +142,10 @@ This time-boxed assignment implements the core server-authoritative workflow whi
 keeping collaboration administration and production hardening narrow.
 
 - **Collaboration and membership:** Users can create `PERSONAL` and `SHARED` Groups, and every
-  Group creator receives an `OWNER` membership. The data model also defines `ADMIN`, `MEMBER`, and
-  invitations, but there are no invitation, onboarding, or member-management API/UI flows. The
-  current authorization path checks membership rather than role-specific permissions, so users
-  cannot promote or demote members, change roles, remove members, or transfer ownership through the
-  application. SHARED realtime therefore synchronizes existing members only.
+  Group creator receives an `OWNER` membership. A SHARED Group OWNER can invite an existing
+  registered user, who joins as `MEMBER` after authenticated acceptance. Broader member management
+  remains intentionally absent: users cannot promote or demote members, change roles, remove
+  members, leave a Group, or transfer ownership through the application.
 - **Realtime and offline behavior:** A valid Ably key is required to run the complete application.
   Only `SHARED` Groups publish and subscribe to notifications for Todo List creation, Todo creation,
   Todo completion/reorder, and Subtask creation/completion; `PERSONAL` Groups do not use
