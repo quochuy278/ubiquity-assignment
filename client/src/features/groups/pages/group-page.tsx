@@ -4,6 +4,7 @@ import { CreateTodoListDialog } from '@/features/groups/components/create-todo-l
 import { GroupBreadcrumbs } from '@/features/groups/components/group-breadcrumbs';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { useGroup, useTodoLists } from '@/features/groups/hooks';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { GroupRealtime } from '@/realtime/group-realtime';
 import { ApiError } from '@/shared/components/api-error';
 import { EmptyState } from '@/shared/components/empty-state';
@@ -14,6 +15,7 @@ export function GroupPage() {
   const { groupId = '' } = useParams();
   const group = useGroup(groupId);
   const lists = useTodoLists(groupId);
+  useDocumentTitle(group.isSuccess ? group.data.name : 'Group');
 
   if (group.isPending || lists.isPending) return <PageLoading label="Loading group" />;
   if (group.isError) return <ApiError error={group.error} onRetry={() => group.refetch()} />;

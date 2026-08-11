@@ -2,10 +2,12 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { LoginForm } from '@/features/auth/components/login-form';
 import { useLogin } from '@/features/auth/hooks';
 import { getPostLoginPath } from '@/features/auth/utils';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 
 export function LoginPage() {
   const login = useLogin();
   const location = useLocation();
+  useDocumentTitle('Login');
 
   if (login.isSuccess) {
     return <Navigate to={getPostLoginPath(location.state)} replace />;

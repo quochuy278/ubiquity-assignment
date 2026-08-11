@@ -61,6 +61,7 @@ describe('Groups hierarchy breadcrumbs', () => {
     );
     expect(within(breadcrumb).getByText(group.name)).toHaveAttribute('aria-current', 'page');
     expect(within(breadcrumb).queryByRole('link', { name: group.name })).not.toBeInTheDocument();
+    expect(document.title).toBe(`${group.name} | Ubiquity Todo`);
   });
 
   it('links a Todo List page to Groups and its parent Group without linking the current List', async () => {
@@ -87,6 +88,7 @@ describe('Groups hierarchy breadcrumbs', () => {
     );
     expect(within(breadcrumb).getByText(todoList.name)).toHaveAttribute('aria-current', 'page');
     expect(within(breadcrumb).queryByRole('link', { name: todoList.name })).not.toBeInTheDocument();
+    expect(document.title).toBe(`${todoList.name} | Ubiquity Todo`);
   });
 
   it('renders a valid Todo List direct deep link without pre-populated navigation state', async () => {
@@ -144,11 +146,13 @@ describe('Groups hierarchy breadcrumbs', () => {
     );
 
     expect(screen.getByText('Loading todos')).toBeInTheDocument();
+    expect(document.title).toBe('Todo List | Ubiquity Todo');
     expect(screen.queryByRole('heading', { name: 'Groups fallback' })).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).not.toBeInTheDocument();
 
     resolveTodoList?.({ data: todoList });
 
     expect(await screen.findByRole('heading', { name: todoList.name })).toBeInTheDocument();
+    expect(document.title).toBe(`${todoList.name} | Ubiquity Todo`);
   });
 });
