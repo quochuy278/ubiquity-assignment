@@ -1,5 +1,5 @@
 import { LoaderCircleIcon, PlusIcon } from 'lucide-react';
-import { type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
+import { type KeyboardEvent, type SyntheticEvent, useEffect, useId, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/api/errors';
 import { useCreateTodo } from '@/features/groups/hooks';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
@@ -13,12 +13,12 @@ export function QuickAddTodo({ todoListId }: { todoListId: string }) {
     isPending: isCreatingTodo,
     mutateAsync: createTodo,
   } = useCreateTodo(todoListId);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState<string>('');
   const inputId = useId();
   const errorId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const submitLockRef = useRef(false);
-  const shouldRestoreFocusRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const submitLockRef = useRef<boolean>(false);
+  const shouldRestoreFocusRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!isCreatingTodo && shouldRestoreFocusRef.current) {
@@ -27,7 +27,7 @@ export function QuickAddTodo({ todoListId }: { todoListId: string }) {
     }
   }, [isCreatingTodo]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = title.trim();
     if (!trimmedTitle || submitLockRef.current || isCreatingTodo) return;

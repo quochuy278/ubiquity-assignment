@@ -50,7 +50,7 @@ export function useCreateGroupMutation() {
 
 export function useCreateFirstListMutation() {
   const queryClient = useQueryClient();
-  const [personalGroup, setPersonalGroup] = useState<GroupResponseDto>();
+  const [personalGroup, setPersonalGroup] = useState<GroupResponseDto | undefined>(undefined);
   const mutation = useMutation({
     mutationFn: async (name: string) => {
       let group = personalGroup;

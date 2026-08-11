@@ -19,8 +19,8 @@ export function SafeButton({
   type = 'button',
   ...props
 }: SafeButtonProps) {
-  const actionLockRef = useRef(false);
-  const [isLocallyPending, setIsLocallyPending] = useState(false);
+  const actionLockRef = useRef<boolean>(false);
+  const [isLocallyPending, setIsLocallyPending] = useState<boolean>(false);
   const isPending = pending || isLocallyPending;
 
   const handleClick = async () => {

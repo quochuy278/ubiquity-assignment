@@ -91,7 +91,7 @@ export function SortableTodoList({
   todoListId: string;
 }) {
   const { isPending: isReorderingTodo, mutateAsync: reorderTodo } = useReorderTodo(todoListId);
-  const reorderLockRef = useRef(false);
+  const reorderLockRef = useRef<boolean>(false);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     if (

@@ -49,10 +49,10 @@ export function FormDialog({
   trigger,
   triggerLabel,
 }: FormDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [isLocallyPending, setIsLocallyPending] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
+  const [isLocallyPending, setIsLocallyPending] = useState<boolean>(false);
   const formId = useId();
-  const submitLockRef = useRef(false);
+  const submitLockRef = useRef<boolean>(false);
   const isSubmitting = isPending || isLocallyPending;
 
   const close = () => {

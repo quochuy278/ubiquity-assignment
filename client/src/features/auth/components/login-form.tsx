@@ -29,8 +29,8 @@ export function LoginForm({
   onLogin,
   ...props
 }: LoginFormProps) {
-  const submitLockRef = useRef(false);
-  const [isLocallyPending, setIsLocallyPending] = useState(false);
+  const submitLockRef = useRef<boolean>(false);
+  const [isLocallyPending, setIsLocallyPending] = useState<boolean>(false);
   const submitPending = isPending || isLocallyPending;
 
   const handleSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {

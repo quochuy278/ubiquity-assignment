@@ -32,7 +32,7 @@ function TodoListRealtimeSubscriber({
   todoListId,
 }: TodoListRealtimeSubscriberProps) {
   const queryClient = useQueryClient();
-  const currentTodoIds = useRef(todoIds);
+  const currentTodoIds = useRef<string[]>(todoIds);
   currentTodoIds.current = todoIds;
 
   const invalidateTodos = (message: Message) => {
