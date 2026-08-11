@@ -50,7 +50,9 @@ export function PendingInvitations() {
         <h2 id="pending-invitations-title" className="font-semibold text-lg">
           Pending invitations
         </h2>
-        <p className="text-muted-foreground text-sm">Join a shared group you were invited to.</p>
+        <p className="text-muted-foreground text-sm">
+          Join a shared workspace you were invited to.
+        </p>
       </div>
       {pendingInvitations.map((invitation) => (
         <Card key={invitation.id}>

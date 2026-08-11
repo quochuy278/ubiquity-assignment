@@ -18,6 +18,13 @@ const createdGroup: GroupResponseDto = {
   updatedAt: '2026-08-10T10:00:00.000Z',
 };
 
+const existingGroup: GroupResponseDto = {
+  ...createdGroup,
+  id: 'group-existing',
+  type: GroupType.Personal,
+  name: 'Personal',
+};
+
 function renderGroupsPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -35,9 +42,9 @@ function renderGroupsPage() {
 }
 
 async function openAndFillCreateGroupForm(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole('button', { name: 'Create group' }));
-  await user.type(screen.getByLabelText('Name'), createdGroup.name);
-  await user.selectOptions(screen.getByLabelText('Type'), GroupType.Shared);
+  await user.click(await screen.findByRole('button', { name: 'Create workspace' }));
+  await user.type(screen.getByLabelText('Workspace name'), createdGroup.name);
+  await user.selectOptions(screen.getByLabelText('Workspace type'), GroupType.Shared);
 }
 
 describe('create group', () => {
@@ -51,15 +58,17 @@ describe('create group', () => {
 
   it('defaults to a personal group and explains shared-group invitations', async () => {
     const user = userEvent.setup();
-    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({
+      data: [existingGroup],
+    } as never);
     renderGroupsPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Create group' }));
+    await user.click(await screen.findByRole('button', { name: 'Create workspace' }));
 
-    expect(screen.getByLabelText('Type')).toHaveValue(GroupType.Personal);
+    expect(screen.getByLabelText('Workspace type')).toHaveValue(GroupType.Personal);
     expect(
       screen.getByText(
-        'Shared groups let you invite registered users and sync collaborative changes.',
+        'Shared workspaces let you invite registered users and sync collaborative changes.',
       ),
     ).toBeInTheDocument();
   });
@@ -68,8 +77,8 @@ describe('create group', () => {
     const user = userEvent.setup();
     const findGroups = vi
       .spyOn(groupsApi, 'groupControllerFindForUserV1')
-      .mockResolvedValueOnce({ data: [] } as never)
-      .mockResolvedValue({ data: [createdGroup] } as never);
+      .mockResolvedValueOnce({ data: [existingGroup] } as never)
+      .mockResolvedValue({ data: [existingGroup, createdGroup] } as never);
     const createGroup = vi
       .spyOn(groupsApi, 'groupControllerCreateV1')
       .mockResolvedValue({ data: createdGroup } as never);
@@ -77,7 +86,7 @@ describe('create group', () => {
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
     await openAndFillCreateGroupForm(user);
-    await user.click(screen.getByRole('button', { name: 'Create group' }));
+    await user.click(screen.getByRole('button', { name: 'Create workspace' }));
 
     expect(createGroup).toHaveBeenCalledWith({
       createGroupDto: { name: createdGroup.name, type: GroupType.Shared },
@@ -85,7 +94,7 @@ describe('create group', () => {
     expect(await screen.findByRole('link', { name: /Product team/ })).toBeInTheDocument();
     expect(screen.getByText('Shared')).toBeInTheDocument();
     expect(screen.queryByText(GroupType.Shared)).not.toBeInTheDocument();
-    expect(queryClient.getQueryData(queryKeys.groups.all)).toEqual([createdGroup]);
+    expect(queryClient.getQueryData(queryKeys.groups.all)).toEqual([existingGroup, createdGroup]);
     expect(queryClient.getQueryData(queryKeys.groups.detail(createdGroup.id))).toEqual(
       createdGroup,
     );
@@ -99,8 +108,8 @@ describe('create group', () => {
   it('keeps the form open and shows an API error when creation fails', async () => {
     const user = userEvent.setup();
     vi.spyOn(groupsApi, 'groupControllerFindForUserV1')
-      .mockResolvedValueOnce({ data: [] } as never)
-      .mockResolvedValue({ data: [createdGroup] } as never);
+      .mockResolvedValueOnce({ data: [existingGroup] } as never)
+      .mockResolvedValue({ data: [existingGroup, createdGroup] } as never);
     const createGroup = vi
       .spyOn(groupsApi, 'groupControllerCreateV1')
       .mockRejectedValueOnce(new Error('Create failed'))
@@ -108,33 +117,35 @@ describe('create group', () => {
     renderGroupsPage();
 
     await openAndFillCreateGroupForm(user);
-    await user.click(screen.getByRole('button', { name: 'Create group' }));
+    await user.click(screen.getByRole('button', { name: 'Create workspace' }));
 
     expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(createGroup).toHaveBeenCalledOnce();
 
-    await user.click(screen.getByRole('button', { name: 'Create group' }));
+    await user.click(screen.getByRole('button', { name: 'Create workspace' }));
     expect(await screen.findByRole('link', { name: /Product team/ })).toBeInTheDocument();
     expect(createGroup).toHaveBeenCalledTimes(2);
   });
 
   it('does not impose a name length limit absent from the API contract', async () => {
     const user = userEvent.setup();
-    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({
+      data: [existingGroup],
+    } as never);
     renderGroupsPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Create group' }));
+    await user.click(await screen.findByRole('button', { name: 'Create workspace' }));
 
-    expect(screen.getByLabelText('Name')).not.toHaveAttribute('maxlength');
+    expect(screen.getByLabelText('Workspace name')).not.toHaveAttribute('maxlength');
   });
 
   it('shows a pending state and prevents duplicate submission', async () => {
     const user = userEvent.setup();
     let resolveCreate: (value: { data: GroupResponseDto }) => void = () => undefined;
     vi.spyOn(groupsApi, 'groupControllerFindForUserV1')
-      .mockResolvedValueOnce({ data: [] } as never)
-      .mockResolvedValue({ data: [createdGroup] } as never);
+      .mockResolvedValueOnce({ data: [existingGroup] } as never)
+      .mockResolvedValue({ data: [existingGroup, createdGroup] } as never);
     const createGroup = vi.spyOn(groupsApi, 'groupControllerCreateV1').mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -151,13 +162,15 @@ describe('create group', () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     });
 
-    const pendingButton = await screen.findByRole('button', { name: 'Creating group...' });
+    const pendingButton = await screen.findByRole('button', { name: 'Creating workspace...' });
     expect(pendingButton).toBeDisabled();
     expect(createGroup).toHaveBeenCalledOnce();
 
     resolveCreate({ data: createdGroup });
     await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Creating group...' })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole('button', { name: 'Creating workspace...' }),
+      ).not.toBeInTheDocument(),
     );
   });
 });

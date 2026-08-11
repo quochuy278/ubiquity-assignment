@@ -10,6 +10,13 @@ import { createAuthResponse, testUser } from '../fixtures/auth';
 
 vi.mock('@/features/groups/hooks', () => ({
   useAcceptInvitation: () => ({ isError: false, isPending: false, mutateAsync: vi.fn() }),
+  useCreateFirstList: () => ({
+    hasCreatedPersonalWorkspace: false,
+    isError: false,
+    isPending: false,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
   useCreateGroup: () => ({ isError: false, isPending: false, mutate: vi.fn() }),
   useGroups: () => ({ data: [], isError: false, isPending: false }),
   usePendingInvitations: () => ({ data: [], isError: false, isPending: false, isSuccess: true }),

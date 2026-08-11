@@ -23,7 +23,7 @@ export function InviteMemberDialog({ groupId }: { groupId: string }) {
   return (
     <FormDialog
       title="Invite member"
-      description="Invite an existing registered user to this shared group."
+      description="Invite an existing registered user to this shared workspace."
       trigger={<Button type="button" variant="outline" />}
       triggerLabel="Invite member"
       submitLabel="Send invitation"

@@ -27,6 +27,9 @@ export class ApiClientError extends Error {
 }
 
 const backendErrorCodes = new Set<string>(Object.values(ErrorCode));
+const userFacingErrorMessages: Partial<Record<ErrorCode, string>> = {
+  [ErrorCode.InviteeNotFound]: 'User not found.',
+};
 
 function isBackendErrorCode(value: unknown): value is ErrorCode {
   return typeof value === 'string' && backendErrorCodes.has(value);
@@ -128,6 +131,9 @@ export function getApiErrorMessage(error: unknown) {
   if (apiError.code === ErrorCode.ServerError || apiError.code === ErrorCode.UnknownError) {
     return 'Something went wrong. Please try again.';
   }
+
+  const userFacingMessage = userFacingErrorMessages[apiError.code];
+  if (userFacingMessage) return userFacingMessage;
 
   return apiError.code.toLowerCase().replaceAll('_', ' ');
 }

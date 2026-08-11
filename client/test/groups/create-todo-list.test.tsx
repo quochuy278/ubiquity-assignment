@@ -68,7 +68,7 @@ describe('create todo list', () => {
 
     renderGroupPage();
 
-    expect(await screen.findByText('No todo lists')).toBeInTheDocument();
+    expect(await screen.findByText('No lists yet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create list' })).toBeInTheDocument();
   });
 

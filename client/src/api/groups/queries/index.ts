@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import type {
   CreateGroupDto,
   CreateSubTaskDto,
@@ -12,6 +13,7 @@ import type {
   TodosApiTodoControllerReorderV1Request,
   TodosApiTodoControllerUpdateCompletionV1Request,
 } from '@/api/generated';
+import { GroupType } from '@/api/generated';
 import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups/api';
 import { queryKeys } from '@/api/query-keys';
 
@@ -44,6 +46,51 @@ export function useCreateGroupMutation() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.groups.all, exact: true });
     },
   });
+}
+
+export function useCreateFirstListMutation() {
+  const queryClient = useQueryClient();
+  const [personalGroup, setPersonalGroup] = useState<GroupResponseDto>();
+  const mutation = useMutation({
+    mutationFn: async (name: string) => {
+      let group = personalGroup;
+
+      if (!group) {
+        const groupResponse = await groupsApi.groupControllerCreateV1({
+          createGroupDto: { name: 'Personal', type: GroupType.Personal },
+        });
+        group = groupResponse.data;
+        setPersonalGroup(group);
+      }
+
+      const todoListResponse = await todoListsApi.todoListControllerCreateV1({
+        groupId: group.id,
+        createTodoListDto: { name },
+      });
+
+      return { group, todoList: todoListResponse.data };
+    },
+    onSuccess: async ({ group, todoList }) => {
+      queryClient.setQueryData<GroupResponseDto[]>(queryKeys.groups.all, (groups = []) => [
+        ...groups.filter((currentGroup) => currentGroup.id !== group.id),
+        group,
+      ]);
+      queryClient.setQueryData(queryKeys.groups.detail(group.id), group);
+      queryClient.setQueryData<TodoListResponseDto[]>(queryKeys.todoLists.forGroup(group.id), [
+        todoList,
+      ]);
+      queryClient.setQueryData(queryKeys.todoLists.detail(todoList.id), todoList);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.groups.all, exact: true }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.todoLists.forGroup(group.id),
+          exact: true,
+        }),
+      ]);
+    },
+  });
+
+  return { ...mutation, hasCreatedPersonalWorkspace: personalGroup !== undefined };
 }
 
 export function useGroupQuery(groupId: string) {

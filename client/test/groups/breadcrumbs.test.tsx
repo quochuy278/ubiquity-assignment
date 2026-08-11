@@ -56,7 +56,7 @@ describe('Groups hierarchy breadcrumbs', () => {
     renderPage(`/groups/${groupId}`, '/groups/:groupId', <GroupPage />);
 
     const breadcrumb = await screen.findByRole('navigation', { name: /breadcrumb/i });
-    expect(within(breadcrumb).getByRole('link', { name: 'Groups' })).toHaveAttribute(
+    expect(within(breadcrumb).getByRole('link', { name: 'Lists' })).toHaveAttribute(
       'href',
       '/groups',
     );
@@ -79,7 +79,7 @@ describe('Groups hierarchy breadcrumbs', () => {
     );
 
     const breadcrumb = await screen.findByRole('navigation', { name: /breadcrumb/i });
-    expect(within(breadcrumb).getByRole('link', { name: 'Groups' })).toHaveAttribute(
+    expect(within(breadcrumb).getByRole('link', { name: 'Lists' })).toHaveAttribute(
       'href',
       '/groups',
     );
@@ -106,7 +106,7 @@ describe('Groups hierarchy breadcrumbs', () => {
     );
 
     expect(await screen.findByRole('heading', { name: todoList.name })).toBeInTheDocument();
-    expect(screen.getByText('No todos')).toBeInTheDocument();
+    expect(screen.getByText('No todos yet')).toBeInTheDocument();
   });
 
   it('redirects a mismatched Todo List relationship without rendering a false hierarchy', async () => {
@@ -147,7 +147,7 @@ describe('Groups hierarchy breadcrumbs', () => {
     );
 
     expect(screen.getByText('Loading todos')).toBeInTheDocument();
-    expect(document.title).toBe('Todo List | Ubiquity Todo');
+    expect(document.title).toBe('List | Ubiquity Todo');
     expect(screen.queryByRole('heading', { name: 'Groups fallback' })).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).not.toBeInTheDocument();
 

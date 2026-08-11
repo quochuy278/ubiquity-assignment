@@ -1,6 +1,7 @@
 import { ChevronRightIcon, UsersIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { GroupType } from '@/api/generated';
+import { CreateFirstListDialog } from '@/features/groups/components/create-first-list-dialog';
 import { CreateGroupDialog } from '@/features/groups/components/create-group-dialog';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { PendingInvitations } from '@/features/groups/components/pending-invitations';
@@ -19,45 +20,50 @@ export function GroupsPage() {
     isPending: isLoadingGroups,
     refetch: refetchGroups,
   } = useGroups();
-  useDocumentTitle('Groups');
+  useDocumentTitle('Lists');
 
-  if (isLoadingGroups) return <PageLoading label="Loading groups" />;
+  if (isLoadingGroups) return <PageLoading label="Loading lists" />;
   if (hasGroupsError) return <ApiError error={groupsError} onRetry={() => refetchGroups()} />;
 
-  return (
-    <GroupPageSection title="Groups" description="Your personal and shared workspaces.">
-      <PendingInvitations />
-      {groups.length === 0 ? (
+  if (groups.length === 0) {
+    return (
+      <GroupPageSection title="Welcome" description="A simple place to organize your tasks.">
+        <PendingInvitations />
         <EmptyState
-          title="No groups yet"
-          description="Create a group to start organizing todo lists."
-          action={<CreateGroupDialog />}
+          title="Create your first list"
+          description="Start with a personal list for your own tasks. Shared workspaces will be here when you want to collaborate."
+          action={<CreateFirstListDialog />}
         />
-      ) : (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <CreateGroupDialog />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {groups.map((group) => (
-              <Link key={group.id} to={`/groups/${group.id}`}>
-                <Card className="h-full transition-colors hover:bg-muted/40">
-                  <CardHeader className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-                    <UsersIcon className="size-5 text-muted-foreground" aria-hidden="true" />
-                    <div>
-                      <CardTitle>{group.name}</CardTitle>
-                      <p className="mt-1 text-muted-foreground text-xs">
-                        {group.type === GroupType.Shared ? 'Shared' : 'Personal'}
-                      </p>
-                    </div>
-                    <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-                  </CardHeader>
-                </Card>
-              </Link>
-            ))}
-          </div>
+      </GroupPageSection>
+    );
+  }
+
+  return (
+    <GroupPageSection title="Lists" description="Your personal and shared workspaces.">
+      <PendingInvitations />
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <CreateGroupDialog />
         </div>
-      )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {groups.map((group) => (
+            <Link key={group.id} to={`/groups/${group.id}`}>
+              <Card className="h-full transition-colors hover:bg-muted/40">
+                <CardHeader className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                  <UsersIcon className="size-5 text-muted-foreground" aria-hidden="true" />
+                  <div>
+                    <CardTitle>{group.name}</CardTitle>
+                    <p className="mt-1 text-muted-foreground text-xs">
+                      {group.type === GroupType.Shared ? 'Shared' : 'Personal'}
+                    </p>
+                  </div>
+                  <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
     </GroupPageSection>
   );
 }
