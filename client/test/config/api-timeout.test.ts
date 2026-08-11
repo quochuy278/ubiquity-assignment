@@ -10,7 +10,10 @@ describe('API timeout configuration', () => {
     expect(getApiTimeoutMs('25000')).toBe(25_000);
   });
 
-  it.each(['0', '-1', 'not-a-number', '1.5'])('rejects invalid timeout value %s', (value) => {
-    expect(() => getApiTimeoutMs(value)).toThrow('VITE_API_TIMEOUT_MS must be a positive integer');
-  });
+  it.each(['', '  ', '0', '-1', 'not-a-number', '1.5'])(
+    'falls back to the default for invalid timeout value %s',
+    (value) => {
+      expect(getApiTimeoutMs(value)).toBe(DEFAULT_API_TIMEOUT_MS);
+    },
+  );
 });
