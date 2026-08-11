@@ -17,7 +17,7 @@ At a glance:
 - Groups and Todo Lists organize a user's work.
 - Todos support descriptions, completion, and drag-and-drop ordering.
 - Subtasks can be added and completed, with visible progress for each Todo.
-- Data is stored in PostgreSQL and remains available across page and server restarts.
+- Data is stored durably in PostgreSQL rather than in application memory.
 
 ## Assignment User Stories
 
@@ -29,8 +29,8 @@ following set and leaves the remaining stories explicit:
 | User story | Status | Notes |
 | --- | --- | --- |
 | ⭐ Create todo items | ✅ | Todos can be created inside a Todo List and are visible immediately. |
-| Realtime collaboration | ❌ | The application does not push live changes between connected users. |
-| Persistence after restart | ✅ | Groups, lists, Todos, Subtasks, completion, and Todo order are stored in PostgreSQL. |
+| Realtime collaboration | ✅ | Existing members of a SHARED Group receive the supported creation, completion, and reorder notifications and refetch authoritative API state. |
+| Persistence after restart | ✅ | Groups, lists, Todos, Subtasks, completion, and Todo order are stored durably in PostgreSQL. |
 | Offline editing and sync | ❌ | The application is online and server-authoritative. |
 | Mark todo as done | ✅ | Active Todos can be marked as completed. |
 | Drag and drop ordering | ✅ | Top-level Todos can be reordered with a pointer or keyboard and retain their order after refresh. |
@@ -41,13 +41,12 @@ following set and leaves the remaining stories explicit:
 
 ## Try It
 
-- **Frontend demo:** [https://ubiquiti-assignment.example.com](https://ubiquiti-assignment.example.com)
-  *(placeholder — deployment pending)*
+- **Frontend demo:** [https://ubiquity-assignment.vercel.app](https://ubiquity-assignment.vercel.app)
 - **Local API documentation:**
   [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
-Until the hosted demo is deployed, the complete application can be tried locally using the steps
-below. The frontend runs at [http://localhost:5173](http://localhost:5173) by default.
+The complete application can also be tried locally using the steps below. The frontend runs at
+[http://localhost:5173](http://localhost:5173) by default.
 
 ## How to Use It
 
@@ -67,6 +66,7 @@ Beyond the selected assignment stories, the application includes:
 - Registration, login, logout, protected data, and refresh-token rotation.
 - Groups and Todo Lists, so Todos have a usable organizational context.
 - Membership-based access isolation between users.
+- Realtime synchronization for existing members of SHARED Groups.
 - Breadcrumb navigation and validation of directly opened Group and Todo List URLs.
 - Activity records for relevant Group, Todo List, Todo, and Subtask changes, exposed through the
   API.
@@ -81,7 +81,7 @@ First, configure and start the API:
 ```bash
 cd server
 cp .env.example .env
-# Set DATABASE_URL and DIRECT_URL in .env for your PostgreSQL database.
+# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY in .env.
 pnpm install
 pnpm prisma:migrate:deploy
 pnpm start:dev
@@ -92,6 +92,7 @@ Then start the frontend in a second terminal:
 ```bash
 cd client
 cp .env.example .env
+# Set ABLY_KEY to a valid subscribe-only browser credential.
 pnpm install
 pnpm dev
 ```
@@ -133,15 +134,41 @@ Railway backend, and generic release tags verify both applications before deploy
 - [`client/`](client/) — React frontend; see the [client documentation](client/README.md).
 - [`server/`](server/) — NestJS API; see the [server documentation](server/README.md).
 
-## Scope & Trade-offs
+## Known Limitations and Trade-offs
 
-This was a time-boxed assignment, so I chose a complete server-authoritative workflow over covering
-every optional story superficially. Offline sync and realtime collaboration were not selected.
-Drag-and-drop applies to top-level Todos only, while Subtasks retain creation order. Activity history
-is available through the API but does not have a dedicated frontend screen.
+This time-boxed assignment implements the core server-authoritative workflow while deliberately
+keeping collaboration administration and production hardening narrow.
 
-## Further Improvements
-
-Given more time, the next useful steps would be a small activity-history screen, clearer multi-user
-collaboration flows, and deployment of a reviewer-ready hosted demo. Offline sync would require a
-separate product and conflict-resolution design rather than a small incremental change.
+- **Collaboration and membership:** Users can create `PERSONAL` and `SHARED` Groups, and every
+  Group creator receives an `OWNER` membership. The data model also defines `ADMIN`, `MEMBER`, and
+  invitations, but there are no invitation, onboarding, or member-management API/UI flows. The
+  current authorization path checks membership rather than role-specific permissions, so users
+  cannot promote or demote members, change roles, remove members, or transfer ownership through the
+  application. SHARED realtime therefore synchronizes existing members only.
+- **Realtime and offline behavior:** A valid Ably key is required to run the complete application.
+  Only `SHARED` Groups publish and subscribe to notifications for Todo List creation, Todo creation,
+  Todo completion/reorder, and Subtask creation/completion; `PERSONAL` Groups do not use
+  collaboration channels. Messages are best-effort change notifications that invalidate TanStack
+  Query data, after which clients refetch PostgreSQL-backed REST state as the source of truth. There
+  is no offline mutation queue, conflict-resolution protocol, outbox, event replay, or presence
+  system.
+- **Concurrent ordering:** Todo reorder operations use persisted fractional Decimal ranks and a
+  list-local rebalance when rank space is exhausted. Normal reorder persistence is covered by tests,
+  but concurrent operations do not use Serializable isolation, a distributed lock, or a retry and
+  conflict-resolution protocol. A higher-contention production system would require stronger
+  concurrency control.
+- **Authentication:** The browser keeps the access token in memory and the refresh token in
+  JavaScript-accessible `localStorage`, with one active account assumed per browser profile. Logout
+  deletes the persisted refresh session, preventing further refreshes, but an already-issued access
+  token remains valid until its 15-minute expiry.
+- **Persistence and test coverage:** PostgreSQL provides durable persistence. Backend E2E tests use
+  the real application module and a real PostgreSQL database in-process, but they do not restart the
+  application process; browser-level full-stack E2E is also outside this assignment's test scope.
+- **Intentionally omitted stories:** Offline editing/synchronization, Markdown rendering for Todo
+  descriptions, cost/price tracking, and unauthenticated sharing through a public unique link were
+  not selected. Drag-and-drop applies to top-level Todos within one list; Subtasks retain their
+  persisted creation order.
+- **Production hardening:** A larger system would replace the browser-exposed subscribe-only Ably
+  key with server-issued, user-scoped capabilities and add stronger operational monitoring. These
+  controls, broader member administration, and high-contention reorder coordination are outside the
+  assignment scope.

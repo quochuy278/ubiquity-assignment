@@ -15,15 +15,15 @@ The primary goals are:
 * Personal task management
 * Shared task management
 * Real-time collaboration
-* Offline synchronization
 
-Anything outside these goals has been intentionally left out.
+Offline editing and synchronization are intentionally outside the current product scope.
 
 ---
 
 # Users
 
-* Every registered user automatically owns one Personal Group.
+* Users explicitly create Groups; the frontend defaults new Groups to PERSONAL.
+* Every Group creator receives an OWNER Membership.
 * Users may belong to multiple Groups.
 * A Group may contain multiple users.
 * Authentication is required for all operations.
@@ -41,7 +41,8 @@ Two group types exist:
 * PERSONAL
 * SHARED
 
-Permissions, invitations, and collaboration are managed at the Group level.
+Authorization and collaboration are scoped at the Group level. Invitation and member-management
+flows are not exposed by the current API or frontend.
 
 ---
 
@@ -79,17 +80,15 @@ Todo → TodoList → Group
 
 # Permissions
 
-Permissions are role-based.
-
-Supported roles:
+Membership stores one of these roles:
 
 * OWNER
 * ADMIN
 * MEMBER
 
-Permission rules are implemented in Policy classes.
-
-Database-driven RBAC is intentionally out of scope.
+The current application creates OWNER Memberships for Group creators and authorizes domain access
+by Membership existence. It does not expose role-specific administration, invitation onboarding,
+role changes, member removal, or ownership transfer.
 
 ---
 
@@ -105,23 +104,16 @@ Rank values may contain gaps to minimize database updates during reordering.
 
 # Collaboration
 
-Real-time collaboration occurs inside a Group.
-
-Users only receive updates for Groups they belong to.
-
-Authorization is always verified before subscribing to collaboration events.
+Real-time notifications are published and subscribed to only for SHARED Groups. The client reaches
+those pages through membership-protected REST resources, then uses a subscribe-only Ably browser
+credential. The current implementation has no server-issued, per-user realtime token endpoint.
 
 ---
 
 # Offline Synchronization
 
-Offline support assumes eventual consistency.
-
-The client may temporarily diverge from the server while offline.
-
-Conflicts are resolved when synchronization occurs.
-
-The implementation does not attempt to provide strong consistency while offline.
+Offline editing and synchronization are not implemented. The client has no offline mutation queue
+or conflict-resolution protocol; REST and PostgreSQL remain authoritative.
 
 ---
 
@@ -134,8 +126,8 @@ Examples include:
 * Todo created
 * Todo completed
 * Todo deleted
-* Member invited
-* Member joined
+* Todo reordered
+* Subtask created or completed
 
 Activity Events are used for auditability rather than rebuilding application state.
 
@@ -164,24 +156,3 @@ The implementation therefore prioritizes:
 * clear business logic
 
 over aggressive pagination or complex optimization strategies.
-
----
-
-# Future Improvements
-
-The following features are intentionally excluded from the current implementation:
-
-* Custom roles
-* Configurable permissions
-* Guest accounts
-* Recurring tasks
-* Attachments
-* Comments
-* Labels
-* Notifications
-* Event sourcing
-* CQRS
-* Multi-tenancy
-* Fine-grained sharing
-
-These features can be introduced later without significantly changing the core domain model.

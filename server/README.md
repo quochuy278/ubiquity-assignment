@@ -465,12 +465,3 @@ pnpm docker:down
 `prisma migrate deploy` as a pre-deploy command, checks `/api`, and restarts failed deployments up
 to the configured retry limit. The repository does not define a broader production topology or
 horizontal-scaling guarantee.
-
-## Known Trade-offs
-
-- The server now publishes a narrow set of TodoList invalidation notifications, but the client does
-  not subscribe yet and there is no offline conflict protocol.
-- ActivityEvent is audit/history, not a client synchronization mechanism.
-- Todo ordering uses fractional Decimal ranks with a small list-local rebalance on exhaustion.
-- Reorder has no distributed lock, Serializable isolation, or generalized retry framework.
-- Subtask order is persisted, but no Subtask reorder endpoint is exposed.

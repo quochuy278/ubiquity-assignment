@@ -57,7 +57,7 @@ The checked-in template is [`.env.example`](.env.example).
 | --- | --- | --- | --- |
 | `VITE_API_BASE_URL` | Production: yes; development: no | Base URL used by Axios and the generated APIs. Development falls back to `http://localhost:3000`. | `http://localhost:3000` |
 | `VITE_API_TIMEOUT_MS` | No | Positive integer request timeout in milliseconds. Defaults to `10000`. | `10000` |
-| `ABLY_KEY` | Required for realtime | Browser credential used only to subscribe to TodoList channels. This assignment expects its Ably capability to be subscribe-only. | `app.key:replace-me` |
+| `ABLY_KEY` | Yes for the complete application | Browser credential used to subscribe to Group and TodoList channels. Production configuration rejects a missing value; this assignment expects its Ably capability to be subscribe-only. | `app.key:replace-me` |
 
 Vite exposes both `VITE_*` variables and `ABLY_*` variables to the browser bundle. `ABLY_KEY` is an
 intentional assignment simplification and must use a key whose Ably-side capability is
@@ -304,9 +304,9 @@ Todo List while one is in progress, without disabling completion or Subtask acti
 
 ## Realtime Group and TodoList Synchronization
 
-Realtime is a progressive enhancement for Group and TodoList pages when the Group has type
-`SHARED`. A single application-level `AblyProvider` owns the shared realtime client. A missing or
-invalid client configuration leaves the normal REST-driven application available.
+Realtime synchronization is part of the intended Group and TodoList flow when the Group has type
+`SHARED`. A single application-level `AblyProvider` owns the shared realtime client. A valid Ably
+key is required for the complete application, and production configuration rejects a missing key.
 
 The Group page subscribes to `group:{groupId}` for TodoList creation. The TodoList page subscribes
 to `todo-list:{todoListId}` for Todo and Subtask changes. Both features open a scoped
@@ -373,16 +373,6 @@ pnpm test
 
 The drag-and-drop tests exercise the application's drag-end contract and cache behavior rather than
 testing dnd-kit's internals.
-
-## Build Notes / Known Trade-offs
-
-- The application is online and server-authoritative; it has no offline mutation queue.
-- Realtime is limited to Todo and Subtask invalidation for the currently viewed SHARED TodoList.
-- Subtask loading currently uses one request per visible Todo.
-- Drag-and-drop is Todo-only and list-local.
-- Refresh-token persistence assumes one active account per browser profile.
-- The current production build emits Vite's large-chunk warning; code splitting has not been added
-  solely for this assignment.
 
 ## Generated Code
 

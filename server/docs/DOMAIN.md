@@ -121,7 +121,9 @@ Supported roles:
 * ADMIN
 * MEMBER
 
-Authorization is always evaluated through Membership.
+The current application creates OWNER Memberships for Group creators. Authorization is evaluated
+through Membership existence; invitation onboarding and role-specific administration are not
+implemented in the current API.
 
 ---
 
@@ -201,12 +203,14 @@ SubTasks never exist outside a Todo.
 
 Represents a pending request to join a Group.
 
-Responsibilities:
+The schema reserves this entity for future onboarding and Membership creation, but the current API
+does not expose invitation creation or acceptance. There is therefore no product path from an
+Invitation record to Membership creation.
+
+Intended responsibilities:
 
 * onboarding
 * membership creation
-
-Accepted invitations create Memberships.
 
 ---
 
@@ -219,8 +223,8 @@ Examples:
 * Todo created
 * Todo completed
 * Todo deleted
-* Member invited
-* Member joined
+* Todo reordered
+* Subtask created or completed
 
 ActivityEvents provide an audit trail and activity history.
 
