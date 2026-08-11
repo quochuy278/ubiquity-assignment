@@ -219,8 +219,7 @@ jobs:
           RELEASE_TAG: ${{ needs.parse.outputs.tag }}
         shell: bash
         run: |
-          railway up ./server \
-            --path-as-root \
+          railway up \
             --ci \
             --yes \
             --project "$RAILWAY_PROJECT_ID" \
