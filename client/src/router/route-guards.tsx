@@ -4,18 +4,24 @@ import { ApiError } from '@/shared/components/api-error';
 import { PageLoading } from '@/shared/components/page-loading';
 
 export function ProtectedRoute() {
-  const currentUser = useCurrentUser();
+  const {
+    data: currentUser,
+    error: currentUserError,
+    isError: hasCurrentUserError,
+    isPending: isLoadingCurrentUser,
+    refetch: refetchCurrentUser,
+  } = useCurrentUser();
   const location = useLocation();
 
-  if (currentUser.isPending) {
+  if (isLoadingCurrentUser) {
     return <PageLoading label="Checking your session" />;
   }
 
-  if (currentUser.isError) {
-    return <ApiError error={currentUser.error} onRetry={() => currentUser.refetch()} />;
+  if (hasCurrentUserError) {
+    return <ApiError error={currentUserError} onRetry={() => refetchCurrentUser()} />;
   }
 
-  if (!currentUser.data) {
+  if (!currentUser) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
@@ -23,15 +29,21 @@ export function ProtectedRoute() {
 }
 
 export function PublicOnlyRoute() {
-  const currentUser = useCurrentUser();
+  const {
+    data: currentUser,
+    error: currentUserError,
+    isError: hasCurrentUserError,
+    isPending: isLoadingCurrentUser,
+    refetch: refetchCurrentUser,
+  } = useCurrentUser();
 
-  if (currentUser.isPending) {
+  if (isLoadingCurrentUser) {
     return <PageLoading label="Checking your session" />;
   }
 
-  if (currentUser.isError) {
-    return <ApiError error={currentUser.error} onRetry={() => currentUser.refetch()} />;
+  if (hasCurrentUserError) {
+    return <ApiError error={currentUserError} onRetry={() => refetchCurrentUser()} />;
   }
 
-  return currentUser.data ? <Navigate to="/groups" replace /> : <Outlet />;
+  return currentUser ? <Navigate to="/groups" replace /> : <Outlet />;
 }

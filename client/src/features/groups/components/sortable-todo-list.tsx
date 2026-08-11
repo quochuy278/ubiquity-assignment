@@ -90,14 +90,14 @@ export function SortableTodoList({
   todos: TodoResponseDto[];
   todoListId: string;
 }) {
-  const reorder = useReorderTodo(todoListId);
+  const { isPending: isReorderingTodo, mutateAsync: reorderTodo } = useReorderTodo(todoListId);
   const reorderLockRef = useRef(false);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     if (
       event.canceled ||
       reorderLockRef.current ||
-      reorder.isPending ||
+      isReorderingTodo ||
       !isSortableOperation(event.operation)
     ) {
       return;
@@ -115,7 +115,7 @@ export function SortableTodoList({
 
     reorderLockRef.current = true;
     try {
-      await reorder.mutateAsync({
+      await reorderTodo({
         todoId: movedTodo.id,
         reorderTodoDto: { beforeTodoId: orderedTodos[toIndex + 1]?.id ?? null },
         orderedTodoIds: orderedTodos.map((todo) => todo.id),
@@ -136,7 +136,7 @@ export function SortableTodoList({
             todo={todo}
             todoListId={todoListId}
             index={index}
-            reorderPending={reorder.isPending}
+            reorderPending={isReorderingTodo}
           />
         ))}
       </div>

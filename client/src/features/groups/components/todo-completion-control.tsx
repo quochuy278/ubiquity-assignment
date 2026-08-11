@@ -11,14 +11,15 @@ export function TodoCompletionControl({
   todo: TodoResponseDto;
   todoListId: string;
 }) {
-  const updateCompletion = useUpdateTodoCompletion(todoListId);
+  const { isPending: isUpdatingTodoCompletion, mutateAsync: updateTodoCompletion } =
+    useUpdateTodoCompletion(todoListId);
   const isCompleted = todo.status === TodoStatus.NUMBER_20;
 
   if (isCompleted) return null;
 
   const handleComplete = async () => {
     try {
-      await updateCompletion.mutateAsync({
+      await updateTodoCompletion({
         todoId: todo.id,
         updateTodoCompletionDto: { completed: true },
       });
@@ -36,7 +37,7 @@ export function TodoCompletionControl({
     <SafeButton
       variant="outline"
       size="sm"
-      pending={updateCompletion.isPending}
+      pending={isUpdatingTodoCompletion}
       pendingText="Completing..."
       onAction={handleComplete}
     >

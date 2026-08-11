@@ -6,10 +6,16 @@ import { Input } from '@/shared/components/ui/input';
 import { toast } from '@/shared/components/ui/toast';
 
 export function CreateTodoListDialog({ groupId }: { groupId: string }) {
-  const createTodoList = useCreateTodoList(groupId);
+  const {
+    error: createTodoListError,
+    isError: hasCreateTodoListError,
+    isPending: isCreatingTodoList,
+    mutateAsync: createTodoList,
+    reset: resetCreateTodoList,
+  } = useCreateTodoList(groupId);
 
   const handleSubmit = async (data: FormData, close: () => void) => {
-    await createTodoList.mutateAsync({ name: String(data.get('name')) });
+    await createTodoList({ name: String(data.get('name')) });
     toast.add({ title: 'List created', type: 'success' });
     close();
   };
@@ -22,9 +28,9 @@ export function CreateTodoListDialog({ groupId }: { groupId: string }) {
       triggerLabel="Create list"
       submitLabel="Create list"
       pendingLabel="Creating list..."
-      isPending={createTodoList.isPending}
-      error={createTodoList.isError ? createTodoList.error : undefined}
-      onReset={createTodoList.reset}
+      isPending={isCreatingTodoList}
+      error={hasCreateTodoListError ? createTodoListError : undefined}
+      onReset={resetCreateTodoList}
       onSubmit={handleSubmit}
     >
       <Field>

@@ -7,8 +7,15 @@ import { SafeButton } from '@/shared/components/safe-button';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 
 export function TodoSubtasks({ todoId }: { todoId: string }) {
-  const subtasks = useSubtasks(todoId);
-  const completedCount = subtasks.data?.filter((subtask) => subtask.completed).length ?? 0;
+  const {
+    data: subtasks,
+    error: subtasksError,
+    isError: hasSubtasksError,
+    isFetching: isFetchingSubtasks,
+    isPending: isLoadingSubtasks,
+    refetch: refetchSubtasks,
+  } = useSubtasks(todoId);
+  const completedCount = subtasks?.filter((subtask) => subtask.completed).length ?? 0;
 
   return (
     <section className="space-y-3 border-t pt-4" aria-label="Subtasks">
@@ -17,31 +24,31 @@ export function TodoSubtasks({ todoId }: { todoId: string }) {
         <CreateSubtaskDialog todoId={todoId} />
       </div>
 
-      {subtasks.isPending && (
+      {isLoadingSubtasks && (
         <p className="text-muted-foreground text-xs" role="status">
           Loading subtasks...
         </p>
       )}
-      {subtasks.isError && (
+      {hasSubtasksError && (
         <Alert variant="destructive">
           <AlertDescription className="flex items-center justify-between gap-3">
-            <span className="first-letter:uppercase">{getApiErrorMessage(subtasks.error)}</span>
+            <span className="first-letter:uppercase">{getApiErrorMessage(subtasksError)}</span>
             <SafeButton
               variant="outline"
               size="xs"
-              pending={subtasks.isFetching}
+              pending={isFetchingSubtasks}
               pendingText="Retrying..."
-              onAction={() => subtasks.refetch()}
+              onAction={() => refetchSubtasks()}
             >
               Retry
             </SafeButton>
           </AlertDescription>
         </Alert>
       )}
-      {subtasks.data && subtasks.data.length > 0 && (
+      {subtasks && subtasks.length > 0 && (
         <div className="ml-2 space-y-2 border-l pl-4">
           <ul className="divide-y">
-            {subtasks.data.map((subtask) => (
+            {subtasks.map((subtask) => (
               <li key={subtask.id} className="flex min-h-9 items-center justify-between gap-3 py-2">
                 <div className="flex min-w-0 items-center gap-2">
                   {subtask.completed ? (
@@ -69,7 +76,7 @@ export function TodoSubtasks({ todoId }: { todoId: string }) {
             ))}
           </ul>
           <p className="text-muted-foreground text-xs">
-            {completedCount} of {subtasks.data.length} completed
+            {completedCount} of {subtasks.length} completed
           </p>
         </div>
       )}
