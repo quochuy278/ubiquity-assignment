@@ -20,7 +20,7 @@ export function GroupBreadcrumbs({
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink render={<Link to="/groups" />}>Groups</BreadcrumbLink>
+          <BreadcrumbLink render={<Link to="/groups" />}>Lists</BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem className="min-w-0">

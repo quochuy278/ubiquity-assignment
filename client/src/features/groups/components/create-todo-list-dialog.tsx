@@ -22,8 +22,8 @@ export function CreateTodoListDialog({ groupId }: { groupId: string }) {
 
   return (
     <FormDialog
-      title="Create todo list"
-      description="Add a new todo list to this group."
+      title="Create list"
+      description="Add another list to this workspace."
       trigger={<Button type="button" />}
       triggerLabel="Create list"
       submitLabel="Create list"

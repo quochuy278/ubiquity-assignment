@@ -28,7 +28,7 @@ export function AppLayout() {
               to="/groups"
             >
               <UsersIcon className="size-4" aria-hidden="true" />
-              Groups
+              Lists
             </NavLink>
           </nav>
           <span className="hidden text-muted-foreground text-sm sm:inline">

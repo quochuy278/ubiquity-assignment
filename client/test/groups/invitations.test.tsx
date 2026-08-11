@@ -3,7 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ApiClientError } from '@/api/errors';
 import {
+  ErrorCode,
   type GroupResponseDto,
   GroupType,
   InvitationStatus,
@@ -78,6 +80,26 @@ describe('shared-group invitations', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('explains when the invitation email does not belong to a registered user', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(groupsApi, 'groupControllerFindByIdV1').mockResolvedValue({
+      data: ownerGroup,
+    } as never);
+    vi.spyOn(todoListsApi, 'todoListControllerFindForGroupV1').mockResolvedValue({
+      data: [],
+    } as never);
+    vi.spyOn(invitationsApi, 'invitationControllerCreateV1').mockRejectedValue(
+      new ApiClientError({ code: ErrorCode.InviteeNotFound, status: 404 }),
+    );
+
+    renderAt(<GroupPage />, `/groups/${ownerGroup.id}`);
+    await user.click(await screen.findByRole('button', { name: 'Invite member' }));
+    await user.type(screen.getByLabelText('Email'), 'missing@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByText('User not found.')).toBeInTheDocument();
+  });
+
   it.each([
     { group: { ...ownerGroup, currentUserRole: MembershipRole.Member }, label: 'member' },
     { group: { ...ownerGroup, currentUserRole: MembershipRole.Admin }, label: 'admin' },
@@ -88,7 +110,7 @@ describe('shared-group invitations', () => {
       data: [],
     } as never);
     renderAt(<GroupPage />, `/groups/${group.id}`);
-    expect(await screen.findByText('No todo lists')).toBeInTheDocument();
+    expect(await screen.findByText('No lists yet')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Invite member' })).not.toBeInTheDocument();
   });
 
@@ -115,6 +137,8 @@ describe('shared-group invitations', () => {
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
     expect(await screen.findByText('Pending invitations')).toBeInTheDocument();
+    expect(screen.getByText('Create your first list')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create my first list' })).toBeInTheDocument();
     expect(screen.getByText(ownerGroup.name)).toBeInTheDocument();
     expect(screen.getByText(/Invited by Alex Owner/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Accept' }));

@@ -1,4 +1,5 @@
 import {
+  useCreateFirstListMutation,
   useCreateGroupMutation,
   useCreateSubtaskMutation,
   useCreateTodoListMutation,
@@ -33,6 +34,10 @@ export function useAcceptInvitation() {
 
 export function useCreateGroup() {
   return useCreateGroupMutation();
+}
+
+export function useCreateFirstList() {
+  return useCreateFirstListMutation();
 }
 
 export function useCreateTodoList(groupId: string) {

@@ -21,35 +21,35 @@ export function CreateGroupDialog() {
       name: String(data.get('name')),
       type: String(data.get('type')) as GroupType,
     });
-    toast.add({ title: 'Group created', type: 'success' });
+    toast.add({ title: 'Workspace created', type: 'success' });
     close();
   };
 
   return (
     <FormDialog
-      title="Create group"
-      description="Create a workspace for a new set of todo lists."
+      title="Create workspace"
+      description="Create a personal or shared workspace for your lists."
       trigger={<Button type="button" />}
-      triggerLabel="Create group"
-      submitLabel="Create group"
-      pendingLabel="Creating group..."
+      triggerLabel="Create workspace"
+      submitLabel="Create workspace"
+      pendingLabel="Creating workspace..."
       isPending={isCreatingGroup}
       error={hasCreateGroupError ? createGroupError : undefined}
       onReset={resetCreateGroup}
       onSubmit={handleSubmit}
     >
       <Field>
-        <FieldLabel htmlFor="group-name">Name</FieldLabel>
+        <FieldLabel htmlFor="group-name">Workspace name</FieldLabel>
         <Input id="group-name" name="name" required autoFocus />
       </Field>
       <Field>
-        <FieldLabel htmlFor="group-type">Type</FieldLabel>
+        <FieldLabel htmlFor="group-type">Workspace type</FieldLabel>
         <NativeSelect id="group-type" name="type" defaultValue={GroupType.Personal}>
           <NativeSelectOption value={GroupType.Personal}>Personal</NativeSelectOption>
           <NativeSelectOption value={GroupType.Shared}>Shared</NativeSelectOption>
         </NativeSelect>
         <FieldDescription>
-          Shared groups let you invite registered users and sync collaborative changes.
+          Shared workspaces let you invite registered users and sync collaborative changes.
         </FieldDescription>
       </Field>
     </FormDialog>

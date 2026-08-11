@@ -27,6 +27,13 @@ vi.mock('@/features/auth', async (importOriginal) => ({
 vi.mock('@/features/auth/hooks', () => authMocks);
 vi.mock('@/features/groups/hooks', () => ({
   useAcceptInvitation: () => ({ isError: false, isPending: false, mutateAsync: vi.fn() }),
+  useCreateFirstList: () => ({
+    hasCreatedPersonalWorkspace: false,
+    isError: false,
+    isPending: false,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
   useCreateGroup: () => ({ isError: false, isPending: false, mutate: vi.fn() }),
   useGroups: () => ({ data: [], isError: false, isPending: false }),
   usePendingInvitations: () => ({ data: [], isError: false, isPending: false, isSuccess: true }),
@@ -63,9 +70,9 @@ describe('application route authentication', () => {
 
     renderRoutes('/groups');
 
-    expect(await screen.findByRole('heading', { name: 'Groups' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome' })).toBeInTheDocument();
     expect(screen.getByText(testUser.displayName)).toBeInTheDocument();
-    expect(document.title).toBe('Groups | Ubiquity Todo');
+    expect(document.title).toBe('Lists | Ubiquity Todo');
   });
 
   it('does not redirect while initial authentication is unresolved', () => {
@@ -90,6 +97,6 @@ describe('application route authentication', () => {
 
     renderRoutes('/login');
 
-    expect(await screen.findByRole('heading', { name: 'Groups' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome' })).toBeInTheDocument();
   });
 });

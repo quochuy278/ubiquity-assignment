@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import {
@@ -69,6 +69,12 @@ const createdTodo: TodoResponseDto = {
   updatedAt: '2026-08-10T12:00:00.000Z',
 };
 
+const quickTodo: TodoResponseDto = {
+  ...createdTodo,
+  title: 'Buy groceries',
+  description: null,
+};
+
 function renderTodoListPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -96,7 +102,7 @@ function mockTodoListQuery() {
 }
 
 async function openAndFillCreateTodoForm(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole('button', { name: 'Create todo' }));
+  await user.click(await screen.findByRole('button', { name: 'Create todo with details' }));
   await user.type(screen.getByLabelText('Title'), createdTodo.title);
   await user.type(screen.getByLabelText('Description'), createdTodo.description ?? '');
 }
@@ -104,14 +110,112 @@ async function openAndFillCreateTodoForm(user: ReturnType<typeof userEvent.setup
 describe('create todo', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('offers the create action from the empty Todo List state', async () => {
+  it('points an empty list toward Quick Add without a competing primary action', async () => {
     mockTodoListQuery();
     vi.spyOn(todosApi, 'todoControllerFindForTodoListV1').mockResolvedValue({ data: [] } as never);
 
     renderTodoListPage();
 
-    expect(await screen.findByText('No todos')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create todo' })).toBeInTheDocument();
+    expect(await screen.findByText('No todos yet')).toBeInTheDocument();
+    expect(screen.getByText('Add your first todo above.')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Quick add todo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create todo' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create todo with details' })).toBeInTheDocument();
+  });
+
+  it('quick-adds a trimmed title with Enter, clears the input, and restores focus', async () => {
+    const user = userEvent.setup();
+    mockTodoListQuery();
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1')
+      .mockResolvedValueOnce({ data: [] } as never)
+      .mockResolvedValue({ data: [quickTodo] } as never);
+    const createTodo = vi
+      .spyOn(todosApi, 'todoControllerCreateV1')
+      .mockResolvedValue({ data: quickTodo } as never);
+    renderTodoListPage();
+
+    const quickAdd = await screen.findByRole('textbox', { name: 'Quick add todo' });
+    await user.type(quickAdd, '  Buy groceries  ');
+    await user.keyboard('{Enter}');
+
+    expect(createTodo).toHaveBeenCalledWith({
+      todoListId,
+      createTodoDto: { title: quickTodo.title },
+    });
+    await waitFor(() => expect(quickAdd).toHaveValue(''));
+    expect(quickAdd).toHaveFocus();
+  });
+
+  it('does not quick-add an empty or whitespace-only title', async () => {
+    const user = userEvent.setup();
+    mockTodoListQuery();
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1').mockResolvedValue({ data: [] } as never);
+    const createTodo = vi.spyOn(todosApi, 'todoControllerCreateV1');
+    renderTodoListPage();
+
+    const quickAdd = await screen.findByRole('textbox', { name: 'Quick add todo' });
+    await user.type(quickAdd, '   ');
+    await user.keyboard('{Enter}');
+
+    expect(createTodo).not.toHaveBeenCalled();
+  });
+
+  it('prevents duplicate Quick Add submissions while creation is pending', async () => {
+    const user = userEvent.setup();
+    let resolveCreate: (value: { data: TodoResponseDto }) => void = () => undefined;
+    mockTodoListQuery();
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1')
+      .mockResolvedValueOnce({ data: [] } as never)
+      .mockResolvedValue({ data: [quickTodo] } as never);
+    const createTodo = vi.spyOn(todosApi, 'todoControllerCreateV1').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve as typeof resolveCreate;
+        }) as never,
+    );
+    renderTodoListPage();
+
+    const quickAdd = await screen.findByRole('textbox', { name: 'Quick add todo' });
+    await user.type(quickAdd, quickTodo.title);
+    const form = quickAdd.closest('form');
+    if (!form) throw new Error('Quick Add form not found');
+    act(() => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+
+    expect(await screen.findByRole('button', { name: 'Adding...' })).toBeDisabled();
+    expect(createTodo).toHaveBeenCalledOnce();
+
+    resolveCreate({ data: quickTodo });
+    await waitFor(() => expect(quickAdd).toHaveValue(''));
+  });
+
+  it('preserves a failed Quick Add title and allows retry', async () => {
+    const user = userEvent.setup();
+    mockTodoListQuery();
+    vi.spyOn(todosApi, 'todoControllerFindForTodoListV1')
+      .mockResolvedValueOnce({ data: [] } as never)
+      .mockResolvedValue({ data: [quickTodo] } as never);
+    const createTodo = vi
+      .spyOn(todosApi, 'todoControllerCreateV1')
+      .mockRejectedValueOnce(new Error('Create failed'))
+      .mockResolvedValueOnce({ data: quickTodo } as never);
+    renderTodoListPage();
+
+    const quickAdd = await screen.findByRole('textbox', { name: 'Quick add todo' });
+    await user.type(quickAdd, quickTodo.title);
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+    expect(quickAdd).toHaveValue(quickTodo.title);
+    expect(quickAdd).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+
+    expect(createTodo).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(quickAdd).toHaveValue(''));
+    expect(quickAdd).toHaveFocus();
   });
 
   it('creates and renders a todo, updates the cache, and invalidates only its list query', async () => {
@@ -152,7 +256,7 @@ describe('create todo', () => {
     expect(findTodos).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Create todo' }));
+    await user.click(screen.getByRole('button', { name: 'Create todo with details' }));
     expect(screen.getByLabelText('Title')).toHaveValue('');
     expect(screen.getByLabelText('Description')).toHaveValue('');
   });

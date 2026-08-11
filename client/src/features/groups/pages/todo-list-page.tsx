@@ -2,6 +2,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { CreateTodoDialog } from '@/features/groups/components/create-todo-dialog';
 import { GroupBreadcrumbs } from '@/features/groups/components/group-breadcrumbs';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
+import { QuickAddTodo } from '@/features/groups/components/quick-add-todo';
 import { SortableTodoList } from '@/features/groups/components/sortable-todo-list';
 import { useGroup, useTodoList, useTodos } from '@/features/groups/hooks';
 import { useDocumentTitle } from '@/hooks/use-document-title';
@@ -34,7 +35,7 @@ export function TodoListPage() {
     isPending: isLoadingTodos,
     refetch: refetchTodos,
   } = useTodos(todoListId);
-  const listTitle = hasLoadedTodoList && todoList.groupId === groupId ? todoList.name : 'Todo List';
+  const listTitle = hasLoadedTodoList && todoList.groupId === groupId ? todoList.name : 'List';
   useDocumentTitle(listTitle);
 
   if (isLoadingTodoList) {
@@ -60,20 +61,15 @@ export function TodoListPage() {
       <div className="space-y-4">
         <GroupBreadcrumbs groupId={groupId} groupName={group.name} todoListName={todoList.name} />
         <GroupPageSection title={todoList.name} description="Todos in this list.">
+          <QuickAddTodo todoListId={todoListId} />
           {todos.length === 0 ? (
-            <EmptyState
-              title="No todos"
-              description="Create a todo to start tracking work in this list."
-              action={<CreateTodoDialog todoListId={todoListId} />}
-            />
+            <EmptyState title="No todos yet" description="Add your first todo above." />
           ) : (
-            <div className="space-y-4">
-              <div className="flex justify-end">
-                <CreateTodoDialog todoListId={todoListId} />
-              </div>
-              <SortableTodoList todos={todos} todoListId={todoListId} />
-            </div>
+            <SortableTodoList todos={todos} todoListId={todoListId} />
           )}
+          <div className="flex justify-end">
+            <CreateTodoDialog todoListId={todoListId} />
+          </div>
         </GroupPageSection>
       </div>
     </TodoListRealtime>

@@ -30,8 +30,8 @@ export function CreateTodoDialog({ todoListId }: { todoListId: string }) {
     <FormDialog
       title="Create todo"
       description="Add a new todo to this list."
-      trigger={<Button type="button" />}
-      triggerLabel="Create todo"
+      trigger={<Button type="button" variant="outline" />}
+      triggerLabel="Create todo with details"
       submitLabel="Create todo"
       pendingLabel="Creating todo..."
       isPending={isCreatingTodo}

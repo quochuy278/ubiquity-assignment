@@ -30,9 +30,9 @@ export function GroupPage() {
     isPending: isLoadingTodoLists,
     refetch: refetchTodoLists,
   } = useTodoLists(groupId);
-  useDocumentTitle(hasLoadedGroup ? group.name : 'Group');
+  useDocumentTitle(hasLoadedGroup ? group.name : 'Workspace');
 
-  if (isLoadingGroup || isLoadingTodoLists) return <PageLoading label="Loading group" />;
+  if (isLoadingGroup || isLoadingTodoLists) return <PageLoading label="Loading workspace" />;
   if (hasGroupError) return <ApiError error={groupError} onRetry={() => refetchGroup()} />;
   if (hasTodoListsError) {
     return <ApiError error={todoListsError} onRetry={() => refetchTodoLists()} />;
@@ -42,7 +42,7 @@ export function GroupPage() {
     <GroupRealtime groupId={groupId} groupType={group.type}>
       <div className="space-y-4">
         <GroupBreadcrumbs groupId={groupId} groupName={group.name} />
-        <GroupPageSection title={group.name} description="Todo lists in this group.">
+        <GroupPageSection title={group.name} description="Lists in this workspace.">
           {group.type === GroupType.Shared && group.currentUserRole === MembershipRole.Owner && (
             <div className="flex justify-end">
               <InviteMemberDialog groupId={groupId} />
@@ -50,8 +50,8 @@ export function GroupPage() {
           )}
           {todoLists.length === 0 ? (
             <EmptyState
-              title="No todo lists"
-              description="Create a list to start organizing todos."
+              title="No lists yet"
+              description="Create your first list in this workspace."
               action={<CreateTodoListDialog groupId={groupId} />}
             />
           ) : (
