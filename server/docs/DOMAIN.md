@@ -121,9 +121,9 @@ Supported roles:
 * ADMIN
 * MEMBER
 
-The current application creates OWNER Memberships for Group creators. Authorization is evaluated
-through Membership existence; invitation onboarding and role-specific administration are not
-implemented in the current API.
+The application creates OWNER Memberships for Group creators and MEMBER Memberships through
+accepted invitations. Existing domain access is evaluated through Membership existence, while
+invitation creation specifically requires OWNER.
 
 ---
 
@@ -201,16 +201,14 @@ SubTasks never exist outside a Todo.
 
 # Invitation
 
-Represents a pending request to join a Group.
-
-The schema reserves this entity for future onboarding and Membership creation, but the current API
-does not expose invitation creation or acceptance. There is therefore no product path from an
-Invitation record to Membership creation.
+Represents a request for an existing registered user to join a SHARED Group. Invitations begin as
+PENDING, expire after seven days, and transition atomically to ACCEPTED while creating a MEMBER
+Membership. Acceptance requires authentication and a normalized email match.
 
 Intended responsibilities:
 
-* onboarding
-* membership creation
+* registered-user onboarding
+* MEMBER creation
 
 ---
 

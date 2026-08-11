@@ -154,8 +154,9 @@ current endpoints.
 
 Todo Lists, Todos, and Subtasks carry persisted rank fields. Todos and Subtasks also support soft
 deletion. ActivityEvent is a separate append-only history record linked to the Group and actor. The
-Prisma schema also includes Invitation and assignee relationships, but no invitation or assignment
-API is registered in the current V1 module set.
+The Invitation model supports the minimal registered-user onboarding path for SHARED Groups. Only
+an OWNER may invite, and authenticated acceptance always creates a MEMBER. Todo assignee
+relationships remain present in the schema without an assignment API.
 
 ## Authentication
 
@@ -194,6 +195,8 @@ protected controller using the access-token guard and service-level ownership ch
 - Todos resolve their Todo List, then its Group membership.
 - Subtasks resolve their parent Todo and follow the same chain.
 - Group activity history also requires Group membership.
+- Only a SHARED Group OWNER may create invitations; acceptance additionally requires the
+  authenticated user's normalized email to match the invitation.
 
 For inaccessible descendant resources, services translate parent-access failures into the same
 entity-specific not-found response used for a missing resource. This avoids exposing whether a
