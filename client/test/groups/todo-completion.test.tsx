@@ -20,6 +20,7 @@ const todoListId = 'list-1';
 const group: GroupResponseDto = {
   id: groupId,
   type: GroupType.Shared,
+  currentUserRole: 'OWNER',
   name: 'Product team',
   createdById: 'user-1',
   createdAt: '2026-08-10T10:00:00.000Z',

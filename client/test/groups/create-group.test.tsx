@@ -4,12 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { type GroupResponseDto, GroupType } from '@/api/generated';
 import { groupsApi } from '@/api/groups';
+import { invitationsApi } from '@/api/invitations';
 import { queryKeys } from '@/api/query-keys';
 import { GroupsPage } from '@/features/groups';
 
 const createdGroup: GroupResponseDto = {
   id: 'group-1',
   type: GroupType.Shared,
+  currentUserRole: 'OWNER',
   name: 'Product team',
   createdById: 'user-1',
   createdAt: '2026-08-10T10:00:00.000Z',
@@ -39,9 +41,15 @@ async function openAndFillCreateGroupForm(user: ReturnType<typeof userEvent.setu
 }
 
 describe('create group', () => {
+  beforeEach(() => {
+    vi.spyOn(invitationsApi, 'invitationControllerFindPendingV1').mockResolvedValue({
+      data: [],
+    } as never);
+  });
+
   afterEach(() => vi.restoreAllMocks());
 
-  it('defaults to a personal group and explains the shared-group limitation', async () => {
+  it('defaults to a personal group and explains shared-group invitations', async () => {
     const user = userEvent.setup();
     vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({ data: [] } as never);
     renderGroupsPage();
@@ -51,7 +59,7 @@ describe('create group', () => {
     expect(screen.getByLabelText('Type')).toHaveValue(GroupType.Personal);
     expect(
       screen.getByText(
-        'Shared groups sync changes for existing members. Adding members is not available in the app.',
+        'Shared groups let you invite registered users and sync collaborative changes.',
       ),
     ).toBeInTheDocument();
   });
