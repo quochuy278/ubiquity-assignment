@@ -149,12 +149,12 @@ User
 ```
 
 Creating a Group also creates an `OWNER` membership for the creator. Access to a Group's active
-API resources is based on membership; role-specific administration is not implemented in the
-current endpoints.
+API resources is based on membership. Invitation creation is the one role-specific product rule:
+only a SHARED Group `OWNER` may invite.
 
 Todo Lists, Todos, and Subtasks carry persisted rank fields. Todos and Subtasks also support soft
 deletion. ActivityEvent is a separate append-only history record linked to the Group and actor. The
-The Invitation model supports the minimal registered-user onboarding path for SHARED Groups. Only
+Invitation model supports the minimal registered-user onboarding path for SHARED Groups. Only
 an OWNER may invite, and authenticated acceptance always creates a MEMBER. Todo assignee
 relationships remain present in the schema without an assignment API.
 
@@ -443,10 +443,10 @@ through Prisma to a dedicated real PostgreSQL database. The command deploys migr
 does not reset existing test data.
 
 Current E2E stories cover the application health/request ID, registration and login journey,
-logout/refresh-session revocation, Groups/Todo Lists/Todos persistence, Todo completion, cross-user
-isolation, Subtask completion and activity, soft deletion, paginated activity history, Todo reorder
-persistence, invalid/cross-list anchors, no-op behavior, authorization, and rollback when an
-activity write fails.
+logout/refresh-session revocation, registered-user invitations and authenticated MEMBER acceptance,
+Groups/Todo Lists/Todos persistence, Todo completion, cross-user isolation, Subtask completion and
+activity, soft deletion, paginated activity history, Todo reorder persistence, invalid/cross-list
+anchors, no-op behavior, authorization, and rollback when an activity write fails.
 
 ## Docker & Deployment
 

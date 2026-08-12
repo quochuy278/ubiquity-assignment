@@ -1,9 +1,11 @@
 # Client
 
-The client is the browser application for authentication and the Groups → Todo Lists → Todos →
-Subtasks workflow. It owns presentation and interaction state while treating the API as the source
-of truth for authenticated users and domain data. See the [root README](../README.md) for the
-product overview and assignment story status.
+The client is the browser application for authentication and the Workspaces → Lists → Todos →
+Subtasks workflow. First-use onboarding creates a personal Workspace and first List together, then
+navigates directly to that List. The frontend owns presentation and interaction state while
+treating the API as the source of truth for authenticated users and domain data. The API retains
+the `Group` and `TodoList` domain names. See the [root README](../README.md) for the product overview
+and assignment story status.
 
 ## Tech Stack
 
@@ -186,9 +188,9 @@ pnpm api:generate
 deletes and regenerates `src/api/generated/` using the `typescript-axios` generator configuration
 in [`openapi-generator.config.json`](openapi-generator.config.json).
 
-The application currently wires generated `AuthApi`, `GroupsApi`, `TodoListsApi`, `TodosApi`, and
-`SubtasksApi` classes through the shared Axios client. Request and response DTOs, enums, and method
-signatures come from the same generated contract.
+The application currently wires generated `AuthApi`, `GroupsApi`, `InvitationsApi`, `TodoListsApi`,
+`TodosApi`, and `SubtasksApi` classes through the shared Axios client. Request and response DTOs,
+enums, and method signatures come from the same generated contract.
 
 The contract flow is:
 
@@ -355,7 +357,8 @@ behavior rather than implementation details, including:
 
 - token-store persistence and the Axios refresh lifecycle;
 - login state, logout, protected/public route behavior, and auth failures;
-- Group, Todo List, and Todo creation;
+- guided first-List onboarding, Workspace/List/Todo creation, Quick Add, and document titles;
+- SHARED Workspace owner invitations, pending-invitation acceptance, and MEMBER controls;
 - breadcrumbs and direct deep-link parent/child validation;
 - Todo and Subtask completion presentation;
 - Subtask creation, progress, errors, pending behavior, and cache isolation;
