@@ -4,8 +4,19 @@ import { useCreateGroup } from '@/features/groups/hooks';
 import { Button } from '@/shared/components/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@/shared/components/ui/field';
 import { Input } from '@/shared/components/ui/input';
-import { NativeSelect, NativeSelectOption } from '@/shared/components/ui/native-select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
 import { toast } from '@/shared/components/ui/toast';
+
+const groupTypeOptions = {
+  [GroupType.Personal]: 'Personal',
+  [GroupType.Shared]: 'Shared',
+};
 
 export function CreateGroupDialog() {
   const {
@@ -44,10 +55,20 @@ export function CreateGroupDialog() {
       </Field>
       <Field>
         <FieldLabel htmlFor="group-type">Workspace type</FieldLabel>
-        <NativeSelect id="group-type" name="type" defaultValue={GroupType.Personal}>
-          <NativeSelectOption value={GroupType.Personal}>Personal</NativeSelectOption>
-          <NativeSelectOption value={GroupType.Shared}>Shared</NativeSelectOption>
-        </NativeSelect>
+        <Select name="type" defaultValue={GroupType.Personal} items={groupTypeOptions}>
+          <SelectTrigger id="group-type" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent
+            side="bottom"
+            align="start"
+            alignItemWithTrigger={false}
+            collisionAvoidance={{ side: 'none', align: 'shift', fallbackAxisSide: 'none' }}
+          >
+            <SelectItem value={GroupType.Personal}>Personal</SelectItem>
+            <SelectItem value={GroupType.Shared}>Shared</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldDescription>
           Shared workspaces let you invite registered users and sync collaborative changes.
         </FieldDescription>

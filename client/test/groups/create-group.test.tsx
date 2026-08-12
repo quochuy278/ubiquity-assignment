@@ -44,7 +44,8 @@ function renderGroupsPage() {
 async function openAndFillCreateGroupForm(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('button', { name: 'Create workspace' }));
   await user.type(screen.getByLabelText('Workspace name'), createdGroup.name);
-  await user.selectOptions(screen.getByLabelText('Workspace type'), GroupType.Shared);
+  await user.click(screen.getByRole('combobox', { name: 'Workspace type' }));
+  await user.click(screen.getByRole('option', { name: 'Shared' }));
 }
 
 describe('create group', () => {
@@ -65,12 +66,40 @@ describe('create group', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Create workspace' }));
 
-    expect(screen.getByLabelText('Workspace type')).toHaveValue(GroupType.Personal);
+    expect(screen.getByRole('combobox', { name: 'Workspace type' })).toHaveTextContent('Personal');
     expect(
       screen.getByText(
         'Shared workspaces let you invite registered users and sync collaborative changes.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('supports keyboard selection and returns focus to the trigger', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(groupsApi, 'groupControllerFindForUserV1').mockResolvedValue({
+      data: [existingGroup],
+    } as never);
+    renderGroupsPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Create workspace' }));
+    const select = screen.getByRole('combobox', { name: 'Workspace type' });
+    select.focus();
+
+    await user.keyboard('{Enter}');
+    const listbox = screen.getByRole('listbox');
+    expect(listbox).toBeInTheDocument();
+    expect(listbox.closest('[data-side]')).toHaveAttribute('data-side', 'bottom');
+    await user.keyboard('{Escape}');
+    expect(select).toHaveFocus();
+
+    await user.keyboard('{Enter}{ArrowDown}{Enter}');
+    expect(select).toHaveTextContent('Shared');
+
+    await user.keyboard('{Enter}');
+    const sharedListbox = screen.getByRole('listbox');
+    expect(sharedListbox.closest('[data-side]')).toHaveAttribute('data-side', 'bottom');
+    await user.keyboard('{Escape}');
+    expect(select).toHaveFocus();
   });
 
   it('creates a group, updates the cached list, and invalidates it', async () => {
