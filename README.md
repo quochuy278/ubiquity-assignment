@@ -167,9 +167,10 @@ cd server
 pnpm check:all
 ```
 
-GitHub Actions runs client typechecking, lint/format checks, tests, and a production build. Server
-CI runs typechecking, lint/format checks, unit, integration, and real-PostgreSQL E2E tests, validates
-the Prisma schema, and builds the API.
+On normal pushes to `master`, GitHub Actions runs client typechecking, lint/format checks, tests,
+and a production build when client paths change. Server CI runs typechecking, lint/format checks,
+unit, integration, and real-PostgreSQL E2E tests, validates the Prisma schema, and builds the API
+when server paths change.
 
 ## Production Deployment
 
@@ -180,13 +181,18 @@ the Prisma schema, and builds the API.
   and checks `GET /api`. Production startup requires `PORT`, `AUTH_ACCESS_TOKEN_SECRET`,
   `DATABASE_URL`, `DIRECT_URL`, and `ABLY_KEY`.
 
-Production releases are explicit and tag-driven:
+Production releases are explicit and tag-driven. A full release deploys the selected, already
+verified commit without rerunning the complete client and server suites. The release workflow does
+not independently enforce that the tag commit belongs to `master` or that normal CI succeeded.
 
 | Tag | Verification and deployment |
 | --- | --- |
 | `release/client-vX.Y.Z` | Runs client CI, then deploys only the Vercel frontend. |
 | `release/server-vX.Y.Z` | Runs server CI, then deploys only the Railway backend. |
-| `release/vX.Y.Z` | Requires the tag commit to be on `master` and successful client/server CI covering the released source, then deploys both. |
+| `release/vX.Y.Z` | Deploys both the Vercel frontend and Railway backend from the tagged commit without rerunning the full suites. |
+
+Operational prerequisite: create a full release tag only from the intended `master` commit after
+Client CI and Server CI are green for the source being released.
 
 Prerelease suffixes accepted by the workflow are also supported. A tag describes deployment
 intent; it is not evidence that the current checkout has been released.

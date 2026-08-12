@@ -109,8 +109,7 @@ Authenticated routes under the shared application layout:
 - `/groups/:groupId`
 - `/groups/:groupId/lists/:todoListId`
 
-The index route redirects to `/groups`. Unknown paths redirect through `/` and then to the
-appropriate authenticated or public destination.
+The index route redirects to `/groups`. Unknown paths render the dedicated Not Found page.
 
 Protected routes wait for the current-user query before rendering. Unauthenticated users are sent
 to `/login` with their attempted location in router state; authenticated users visiting login or
