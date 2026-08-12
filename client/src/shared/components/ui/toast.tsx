@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 
 const toast = ToastPrimitive.createToastManager();
+const DEFAULT_TOAST_TIMEOUT_MS = 3_000;
 
 function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
   return <ToastPrimitive.Provider {...props} />;
@@ -188,9 +189,14 @@ function ToastList() {
   ));
 }
 
-function Toaster({ children, toastManager = toast, ...props }: ToastPrimitive.Provider.Props) {
+function Toaster({
+  children,
+  timeout = DEFAULT_TOAST_TIMEOUT_MS,
+  toastManager = toast,
+  ...props
+}: ToastPrimitive.Provider.Props) {
   return (
-    <ToastProvider toastManager={toastManager} {...props}>
+    <ToastProvider timeout={timeout} toastManager={toastManager} {...props}>
       {children}
       <ToastPortal>
         <ToastViewport>
@@ -206,6 +212,7 @@ const useToastManager = ToastPrimitive.useToastManager;
 
 export {
   createToastManager,
+  DEFAULT_TOAST_TIMEOUT_MS,
   Toast,
   ToastAction,
   ToastClose,

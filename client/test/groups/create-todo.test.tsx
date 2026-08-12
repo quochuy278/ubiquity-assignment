@@ -12,6 +12,7 @@ import {
 import { groupsApi, subtasksApi, todoListsApi, todosApi } from '@/api/groups';
 import { queryKeys } from '@/api/query-keys';
 import { TodoListPage } from '@/features/groups';
+import { toast } from '@/shared/components/ui/toast';
 
 const groupId = 'group-1';
 const todoListId = 'list-1';
@@ -132,6 +133,7 @@ describe('create todo', () => {
     const createTodo = vi
       .spyOn(todosApi, 'todoControllerCreateV1')
       .mockResolvedValue({ data: quickTodo } as never);
+    const addToast = vi.spyOn(toast, 'add');
     renderTodoListPage();
 
     const quickAdd = await screen.findByRole('textbox', { name: 'Quick add todo' });
@@ -142,6 +144,8 @@ describe('create todo', () => {
       todoListId,
       createTodoDto: { title: quickTodo.title },
     });
+    expect(addToast).toHaveBeenCalledOnce();
+    expect(addToast).toHaveBeenCalledWith({ title: 'Todo created', type: 'success' });
     await waitFor(() => expect(quickAdd).toHaveValue(''));
     expect(quickAdd).toHaveFocus();
   });

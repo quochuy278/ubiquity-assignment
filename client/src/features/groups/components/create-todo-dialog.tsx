@@ -4,7 +4,6 @@ import { Button } from '@/shared/components/ui/button';
 import { Field, FieldLabel } from '@/shared/components/ui/field';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { toast } from '@/shared/components/ui/toast';
 
 export function CreateTodoDialog({ todoListId }: { todoListId: string }) {
   const {
@@ -22,7 +21,6 @@ export function CreateTodoDialog({ todoListId }: { todoListId: string }) {
       title: String(data.get('title')),
       ...(description ? { description } : {}),
     });
-    toast.add({ title: 'Todo created', type: 'success' });
     close();
   };
 

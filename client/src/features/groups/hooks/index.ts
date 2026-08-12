@@ -19,6 +19,7 @@ import {
   useCreateInvitationMutation,
   usePendingInvitationsQuery,
 } from '@/api/invitations';
+import { toast } from '@/shared/components/ui/toast';
 
 export function useCreateInvitation(groupId: string) {
   return useCreateInvitationMutation(groupId);
@@ -45,7 +46,16 @@ export function useCreateTodoList(groupId: string) {
 }
 
 export function useCreateTodo(todoListId: string) {
-  return useCreateTodoMutation(todoListId);
+  const mutation = useCreateTodoMutation(todoListId);
+
+  return {
+    ...mutation,
+    mutateAsync: async (...args: Parameters<typeof mutation.mutateAsync>) => {
+      const todo = await mutation.mutateAsync(...args);
+      toast.add({ title: 'Todo created', type: 'success' });
+      return todo;
+    },
+  };
 }
 
 export function useCreateSubtask(todoId: string) {
