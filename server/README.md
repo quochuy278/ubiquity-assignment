@@ -32,7 +32,7 @@ From `server/`:
 ```bash
 pnpm install
 cp .env.example .env
-# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY in .env.
+# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY in .env. CORS_ORIGIN defaults to * in development.
 pnpm prisma:migrate:deploy
 pnpm start:dev
 ```
@@ -80,6 +80,7 @@ use `.env.test.local`.
 | `NODE_ENV` | No in development; set to `production` for production configuration | Selects development, test, or production configuration. |
 | `PORT` | Production: yes; development: no | HTTP port. Development defaults to `3000`. |
 | `AUTH_ACCESS_TOKEN_SECRET` | Production: yes; development: no | JWT signing secret, minimum 32 characters. Development has a local-only default. |
+| `CORS_ORIGIN` | Production: yes; development: no | Browser frontend origin allowed by CORS. Development defaults to `*`; production requires one explicit URL. |
 | `DATABASE_URL` | Yes | PostgreSQL runtime connection string used by the Prisma driver adapter. |
 | `DIRECT_URL` | Yes | Direct PostgreSQL connection used by Prisma CLI operations and migrations. |
 | `ABLY_KEY` | Yes | Ably API key used by the server to publish realtime notifications. |
@@ -92,13 +93,14 @@ Use values shaped like those in [`.env.example`](.env.example); never commit rea
 | --- | --- | --- |
 | `PORT` | No | E2E application port; defaults to `3001` when needed. |
 | `E2E_AUTH_ACCESS_TOKEN_SECRET` | Yes | Test-only JWT secret, minimum 32 characters. |
+| `CORS_ORIGIN` | No | Browser frontend origin allowed by CORS; defaults to `http://localhost:5173`. |
 | `E2E_DATABASE_URL` | Yes | Runtime connection to the dedicated E2E PostgreSQL database. |
 | `E2E_DIRECT_URL` | Yes | Direct migration connection for the E2E database. |
 | `ABLY_KEY` | No | Ably API key. Test configuration uses a non-secret local default because automated tests mock the transport and never call Ably. |
 
-CORS is currently enabled for all origins in application bootstrap as a development/demo policy;
-there is no frontend-origin environment variable. An explicit allowlist would be required before a
-cookie-based credential model.
+Production CORS grants browser access only to `CORS_ORIGIN`. Development defaults to `*` for local
+convenience, while tests default to the local Vite origin. CORS is a browser boundary and does not
+replace bearer-token authentication or Group authorization.
 
 ## Backend Architecture
 

@@ -5,6 +5,7 @@ import { createE2eApplication } from './support/e2e-application';
 
 describe('Application root endpoint over HTTP', () => {
   let app: INestApplication<App>;
+  const allowedOrigin = 'http://localhost:5173';
 
   beforeAll(async () => {
     app = await createE2eApplication();
@@ -24,6 +25,25 @@ describe('Application root endpoint over HTTP', () => {
       .set('x-request-id', 'frontend-request-1')
       .expect(200)
       .expect('x-request-id', 'frontend-request-1');
+  });
+
+  it('grants CORS access only to the configured frontend origin', async () => {
+    await request(app.getHttpServer())
+      .options('/api/v1/auth/me')
+      .set('origin', allowedOrigin)
+      .set('access-control-request-method', 'GET')
+      .set('access-control-request-headers', 'authorization')
+      .expect(204)
+      .expect('access-control-allow-origin', allowedOrigin);
+
+    const unrelatedOriginResponse = await request(app.getHttpServer())
+      .options('/api/v1/auth/me')
+      .set('origin', 'https://unrelated.example')
+      .set('access-control-request-method', 'GET')
+      .set('access-control-request-headers', 'authorization')
+      .expect(204);
+
+    expect(unrelatedOriginResponse.headers).not.toHaveProperty('access-control-allow-origin');
   });
 
   afterAll(async () => {

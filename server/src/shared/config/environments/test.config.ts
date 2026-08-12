@@ -4,6 +4,7 @@ import type { ApplicationConfig } from '../configuration.interface';
 const testEnvironmentSchema = Joi.object({
   PORT: Joi.number().port().default(3001),
   E2E_AUTH_ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
+  CORS_ORIGIN: Joi.string().uri().default('http://localhost:5173'),
   E2E_DATABASE_URL: Joi.string().required(),
   E2E_DIRECT_URL: Joi.string().required(),
   ABLY_KEY: Joi.string().default('test-app.test-key:test-secret'),
@@ -21,6 +22,7 @@ export default (): ApplicationConfig => {
 
   return {
     app: {
+      corsOrigin: value.CORS_ORIGIN as string,
       environment: 'test',
       port: value.PORT as number,
     },

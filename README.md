@@ -106,15 +106,15 @@ Start the API:
 ```bash
 cd server
 cp .env.example .env
-# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY.
+# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY. CORS_ORIGIN defaults to * in development.
 pnpm install
 pnpm prisma:migrate:deploy
 pnpm start:dev
 ```
 
 The API defaults to [http://localhost:3000](http://localhost:3000), its health/welcome endpoint is
-`GET /api`, and Swagger UI is at `/api/docs`. The current server enables CORS for all origins as a
-development/demo policy.
+`GET /api`, and Swagger UI is at `/api/docs`. Development CORS defaults to `*`; production requires
+an explicit `CORS_ORIGIN`.
 
 In a second terminal, start the frontend:
 
@@ -179,7 +179,8 @@ when server paths change.
   deployment from `master` and rewrites application routes to `index.html` for SPA fallback.
 - **Backend:** Railway builds `server/Dockerfile`, runs `prisma migrate deploy` before deployment,
   and checks `GET /api`. Production startup requires `PORT`, `AUTH_ACCESS_TOKEN_SECRET`,
-  `DATABASE_URL`, `DIRECT_URL`, and `ABLY_KEY`.
+  `CORS_ORIGIN`, `DATABASE_URL`, `DIRECT_URL`, and `ABLY_KEY`. Configure `CORS_ORIGIN` as the
+  deployed frontend origin in Railway runtime variables; the release workflow does not pass it.
 
 Production releases are explicit and tag-driven. A full release deploys the selected, already
 verified commit without rerunning the complete client and server suites. The release workflow does
