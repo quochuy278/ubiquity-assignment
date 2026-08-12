@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { activitiesApi } from '@/api/activities';
 import { type GroupResponseDto, GroupType, type TodoListResponseDto } from '@/api/generated';
 import { groupsApi, todoListsApi } from '@/api/groups';
 import { queryKeys } from '@/api/query-keys';
@@ -58,6 +59,12 @@ async function openAndFillCreateListForm(user: ReturnType<typeof userEvent.setup
 }
 
 describe('create todo list', () => {
+  beforeEach(() => {
+    vi.spyOn(activitiesApi, 'activityControllerFindForGroupV1').mockResolvedValue({
+      data: { items: [], nextCursor: null },
+    } as never);
+  });
+
   afterEach(() => vi.restoreAllMocks());
 
   it('offers the create action from the empty-list state', async () => {

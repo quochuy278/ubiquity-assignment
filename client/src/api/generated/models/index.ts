@@ -1,3 +1,4 @@
+export * from './activity-actor-response-dto';
 export * from './activity-entity-type';
 export * from './activity-page-response-dto';
 export * from './activity-response-dto';

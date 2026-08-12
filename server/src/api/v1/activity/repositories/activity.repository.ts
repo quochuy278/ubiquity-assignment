@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import type { ActivityEvent, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma/prisma.service';
 import { ActivityEntityType, ActivityType } from '../activity.constants';
-import type { ActivityPageResult, ActivityResult, CreateActivityInput } from '../activity.types';
+import type {
+  ActivityPageResult,
+  ActivityReadResult,
+  ActivityResult,
+  CreateActivityInput,
+} from '../activity.types';
 
 @Injectable()
 export class ActivityRepository {
@@ -33,13 +38,29 @@ export class ActivityRepository {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: {
+        performedBy: { select: { id: true, displayName: true } },
+      },
     });
     const hasNextPage = activities.length > limit;
     const page = activities.slice(0, limit);
 
     return {
-      items: page.map((activity) => this.toResult(activity)),
+      items: page.map((activity) => this.toReadResult(activity)),
       nextCursor: hasNextPage ? (page.at(-1)?.id ?? null) : null,
+    };
+  }
+
+  private toReadResult(
+    activity: ActivityEvent & { performedBy: { id: string; displayName: string } },
+  ): ActivityReadResult {
+    const { performedBy, ...event } = activity;
+    return {
+      ...this.toResult(event),
+      actor: {
+        id: performedBy.id,
+        name: performedBy.displayName,
+      },
     };
   }
 

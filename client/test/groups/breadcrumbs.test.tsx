@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { activitiesApi } from '@/api/activities';
 import { type GroupResponseDto, GroupType, type TodoListResponseDto } from '@/api/generated';
 import { groupsApi, todoListsApi, todosApi } from '@/api/groups';
 import { GroupPage, TodoListPage } from '@/features/groups';
@@ -45,6 +46,12 @@ function renderPage(path: string, routePath: string, element: React.ReactNode) {
 }
 
 describe('Groups hierarchy breadcrumbs', () => {
+  beforeEach(() => {
+    vi.spyOn(activitiesApi, 'activityControllerFindForGroupV1').mockResolvedValue({
+      data: { items: [], nextCursor: null },
+    } as never);
+  });
+
   afterEach(() => vi.restoreAllMocks());
 
   it('links a Group page back to Groups without linking the current Group', async () => {

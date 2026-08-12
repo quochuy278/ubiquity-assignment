@@ -1,4 +1,7 @@
 export const queryKeys = {
+  activities: {
+    forGroup: (groupId: string) => ['groups', groupId, 'activities'] as const,
+  },
   auth: {
     me: ['auth', 'me'] as const,
   },

@@ -60,6 +60,7 @@ describe('Activity persistence', () => {
         entityId: 'todo-1',
         metadata: null,
         createdAt,
+        performedBy: { id: 'user-1', displayName: 'Huy Nguyen' },
       },
       {
         id: 'activity-2',
@@ -70,6 +71,7 @@ describe('Activity persistence', () => {
         entityId: 'todo-1',
         metadata: null,
         createdAt,
+        performedBy: { id: 'user-1', displayName: 'Huy Nguyen' },
       },
       {
         id: 'activity-1',
@@ -80,11 +82,15 @@ describe('Activity persistence', () => {
         entityId: 'list-1',
         metadata: null,
         createdAt,
+        performedBy: { id: 'user-1', displayName: 'Huy Nguyen' },
       },
     ]);
 
     await expect(repository.findPage('group-1', 2, 'cursor-0')).resolves.toMatchObject({
-      items: [{ id: 'activity-3' }, { id: 'activity-2' }],
+      items: [
+        { id: 'activity-3', actor: { id: 'user-1', name: 'Huy Nguyen' } },
+        { id: 'activity-2', actor: { id: 'user-1', name: 'Huy Nguyen' } },
+      ],
       nextCursor: 'activity-2',
     });
     expect(findMany).toHaveBeenCalledWith({
@@ -93,6 +99,10 @@ describe('Activity persistence', () => {
       take: 3,
       cursor: { id: 'cursor-0' },
       skip: 1,
+      include: {
+        performedBy: { select: { id: true, displayName: true } },
+      },
     });
+    expect(findMany).toHaveBeenCalledTimes(1);
   });
 });
