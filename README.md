@@ -87,10 +87,14 @@ invite. This is a narrow membership model, not a complete RBAC system.
 ## Try It
 
 - **Frontend demo:** [https://ubiquity-assignment.vercel.app](https://ubiquity-assignment.vercel.app)
+- **Backend API / healthcheck:**
+  [https://ubiquity-assignment-production.up.railway.app/api](https://ubiquity-assignment-production.up.railway.app/api)
+- **Production OpenAPI UI:**
+  [https://ubiquity-assignment-production.up.railway.app/api/docs](https://ubiquity-assignment-production.up.railway.app/api/docs)
 - **Local OpenAPI UI:** [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
-The frontend URL currently responds, but repository evidence does not establish that the deployed
-build matches the current checkout.
+The deployed URLs currently respond, but repository evidence does not establish that the deployed
+builds match the current checkout.
 
 ## Run Locally
 
