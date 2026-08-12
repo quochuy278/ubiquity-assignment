@@ -15,6 +15,9 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
+import type { ActivityActorResponseDto } from './activity-actor-response-dto';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { ActivityEntityType } from './activity-entity-type';
 // May contain unused imports in some cases
 // @ts-ignore
@@ -24,6 +27,7 @@ export interface ActivityResponseDto {
     'id': string;
     'groupId': string;
     'actorId': string;
+    'actor': ActivityActorResponseDto;
     'type': ActivityType;
     'entityType': ActivityEntityType;
     'entityId': string;

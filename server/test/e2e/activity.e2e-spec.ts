@@ -19,18 +19,21 @@ function requireString(value: unknown, field: string): string {
 
 interface AuthenticatedUser {
   authorization: { Authorization: string };
+  displayName: string;
   userId: string;
 }
 
 async function register(app: INestApplication<App>, prefix: string): Promise<AuthenticatedUser> {
+  const input = createUniqueUserInput(prefix);
   const response = await request(app.getHttpServer())
     .post('/api/v1/auth/register')
-    .send(createUniqueUserInput(prefix))
+    .send(input)
     .expect(201);
   return {
     authorization: {
       Authorization: `Bearer ${requireString(response.body.accessToken, 'access token')}`,
     },
+    displayName: input.displayName,
     userId: requireString(response.body.user?.id, 'user ID'),
   };
 }
@@ -125,6 +128,7 @@ describe('Group activity history over real HTTP and PostgreSQL', () => {
       expect.objectContaining({
         groupId,
         actorId: owner.userId,
+        actor: { id: owner.userId, name: owner.displayName },
         type: ActivityType.TODO_UNCOMPLETED,
         entityType: ActivityEntityType.TODO,
         entityId: todoId,
@@ -132,6 +136,7 @@ describe('Group activity history over real HTTP and PostgreSQL', () => {
       expect.objectContaining({
         groupId,
         actorId: owner.userId,
+        actor: { id: owner.userId, name: owner.displayName },
         type: ActivityType.TODO_COMPLETED,
         entityType: ActivityEntityType.TODO,
         entityId: todoId,
@@ -146,11 +151,13 @@ describe('Group activity history over real HTTP and PostgreSQL', () => {
       .expect(({ body }) => {
         expect(body.items).toEqual([
           expect.objectContaining({
+            actor: { id: owner.userId, name: owner.displayName },
             type: ActivityType.TODO_CREATED,
             entityType: ActivityEntityType.TODO,
             entityId: todoId,
           }),
           expect.objectContaining({
+            actor: { id: owner.userId, name: owner.displayName },
             type: ActivityType.TODO_LIST_CREATED,
             entityType: ActivityEntityType.TODO_LIST,
             entityId: todoListId,

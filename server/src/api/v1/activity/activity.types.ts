@@ -17,7 +17,14 @@ export interface ActivityResult
   entityType: ActivityEntityType;
 }
 
+export interface ActivityReadResult extends ActivityResult {
+  actor: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface ActivityPageResult {
-  items: ActivityResult[];
+  items: ActivityReadResult[];
   nextCursor: string | null;
 }

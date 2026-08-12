@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { activitiesApi } from '@/api/activities';
 import { ApiClientError } from '@/api/errors';
 import {
   ErrorCode,
@@ -45,6 +46,12 @@ function renderAt(element: ReactNode, path: string) {
 }
 
 describe('shared-group invitations', () => {
+  beforeEach(() => {
+    vi.spyOn(activitiesApi, 'activityControllerFindForGroupV1').mockResolvedValue({
+      data: { items: [], nextCursor: null },
+    } as never);
+  });
+
   afterEach(() => vi.restoreAllMocks());
 
   it('shows the invite dialog only to a shared-group owner and submits normalized input', async () => {

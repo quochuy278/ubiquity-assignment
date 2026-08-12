@@ -5,6 +5,7 @@ import { CreateTodoListDialog } from '@/features/groups/components/create-todo-l
 import { GroupBreadcrumbs } from '@/features/groups/components/group-breadcrumbs';
 import { GroupPageSection } from '@/features/groups/components/group-page-section';
 import { InviteMemberDialog } from '@/features/groups/components/invite-member-dialog';
+import { RecentActivity } from '@/features/groups/components/recent-activity';
 import { useGroup, useTodoLists } from '@/features/groups/hooks';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { GroupRealtime } from '@/realtime/group-realtime';
@@ -80,6 +81,7 @@ export function GroupPage() {
             </div>
           )}
         </GroupPageSection>
+        {group.type === GroupType.Shared && <RecentActivity groupId={groupId} />}
       </div>
     </GroupRealtime>
   );

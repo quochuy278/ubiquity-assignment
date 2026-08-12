@@ -1619,6 +1619,16 @@ components:
         - inviterId
         - inviterDisplayName
         - expiresAt
+    ActivityActorResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
     ActivityType:
       type: string
       enum:
@@ -1647,6 +1657,8 @@ components:
           type: string
         actorId:
           type: string
+        actor:
+          $ref: "#/components/schemas/ActivityActorResponseDto"
         type:
           allOf:
             - $ref: "#/components/schemas/ActivityType"
@@ -1662,6 +1674,7 @@ components:
         - id
         - groupId
         - actorId
+        - actor
         - type
         - entityType
         - entityId
