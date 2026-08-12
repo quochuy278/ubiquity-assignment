@@ -6,6 +6,7 @@ const developmentEnvironmentSchema = Joi.object({
   AUTH_ACCESS_TOKEN_SECRET: Joi.string()
     .min(32)
     .default('development-only-access-secret-change-me'),
+  CORS_ORIGIN: Joi.alternatives().try(Joi.string().valid('*'), Joi.string().uri()).default('*'),
   DATABASE_URL: Joi.string().required(),
   DIRECT_URL: Joi.string().required(),
   ABLY_KEY: Joi.string().required(),
@@ -23,6 +24,7 @@ export default (): ApplicationConfig => {
 
   return {
     app: {
+      corsOrigin: value.CORS_ORIGIN as string,
       environment: process.env.NODE_ENV ?? 'development',
       port: value.PORT as number,
     },

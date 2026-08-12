@@ -4,6 +4,7 @@ import type { ApplicationConfig } from '../configuration.interface';
 const productionEnvironmentSchema = Joi.object({
   PORT: Joi.number().port().required(),
   AUTH_ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
+  CORS_ORIGIN: Joi.string().uri().required(),
   DATABASE_URL: Joi.string().required(),
   DIRECT_URL: Joi.string().required(),
   ABLY_KEY: Joi.string().required(),
@@ -21,6 +22,7 @@ export default (): ApplicationConfig => {
 
   return {
     app: {
+      corsOrigin: value.CORS_ORIGIN as string,
       environment: 'production',
       port: value.PORT as number,
     },

@@ -1,5 +1,6 @@
 export interface ApplicationConfig {
   app: {
+    corsOrigin: string;
     environment: string;
     port: number;
   };

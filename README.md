@@ -51,16 +51,16 @@ exposes completion but does not show a Reopen action.
 
 | User story | Status | Notes |
 | --- | --- | --- |
-| Create todo items | Implemented | Quick Add creates Todos immediately; the detailed dialog also accepts a description. |
-| Realtime collaboration | Implemented | Supported changes in `SHARED` Workspaces notify subscribed clients, which refetch authoritative REST state. |
-| Persistence after restart | Implemented | Workspaces, Lists, Todos, Subtasks, completion state, and Todo order are stored in PostgreSQL. |
-| Offline editing and sync | Not implemented | The application is online and server-authoritative. |
-| Mark todo as done | Implemented | Active Todos and Subtasks can be completed. |
-| Drag-and-drop ordering | Implemented | Top-level Todos support pointer and keyboard sorting, and their order survives reloads. |
-| Subtasks and progress | Implemented | Subtasks can be added and completed, with a completed/total count per Todo. |
-| Cost / price | Not implemented | No cost or pricing fields are exposed. |
-| Markdown descriptions | Not implemented | Todo descriptions are plain text. |
-| Share via unique link | Not implemented | Deep links require authentication and Workspace membership; there is no public sharing. |
+| Create todo items | ✅ | Quick Add creates Todos immediately; the detailed dialog also accepts a description. |
+| Realtime collaboration | ✅ | Supported changes in `SHARED` Workspaces notify subscribed clients, which refetch authoritative REST state. |
+| Persistence after restart | ✅ | Workspaces, Lists, Todos, Subtasks, completion state, and Todo order are stored in PostgreSQL. |
+| Offline editing and sync | ❌ | The application is online and server-authoritative. |
+| Mark todo as done | ✅ | Active Todos and Subtasks can be completed. |
+| Drag-and-drop ordering | ✅ | Top-level Todos support pointer and keyboard sorting, and their order survives reloads. |
+| Subtasks and progress | ✅ | Subtasks can be added and completed, with a completed/total count per Todo. |
+| Cost / price | ❌ | No cost or pricing fields are exposed. |
+| Markdown descriptions | ❌ | Todo descriptions are plain text. |
+| Share via unique link | ❌ | Deep links require authentication and Workspace membership; there is no public sharing. |
 
 ## Realtime, REST, and Persistence
 
@@ -106,15 +106,15 @@ Start the API:
 ```bash
 cd server
 cp .env.example .env
-# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY.
+# Set DATABASE_URL, DIRECT_URL, and ABLY_KEY. CORS_ORIGIN defaults to * in development.
 pnpm install
 pnpm prisma:migrate:deploy
 pnpm start:dev
 ```
 
 The API defaults to [http://localhost:3000](http://localhost:3000), its health/welcome endpoint is
-`GET /api`, and Swagger UI is at `/api/docs`. The current server enables CORS for all origins as a
-development/demo policy.
+`GET /api`, and Swagger UI is at `/api/docs`. Development CORS defaults to `*`; production requires
+an explicit `CORS_ORIGIN`.
 
 In a second terminal, start the frontend:
 
@@ -179,7 +179,8 @@ when server paths change.
   deployment from `master` and rewrites application routes to `index.html` for SPA fallback.
 - **Backend:** Railway builds `server/Dockerfile`, runs `prisma migrate deploy` before deployment,
   and checks `GET /api`. Production startup requires `PORT`, `AUTH_ACCESS_TOKEN_SECRET`,
-  `DATABASE_URL`, `DIRECT_URL`, and `ABLY_KEY`.
+  `CORS_ORIGIN`, `DATABASE_URL`, `DIRECT_URL`, and `ABLY_KEY`. Configure `CORS_ORIGIN` as the
+  deployed frontend origin in Railway runtime variables; the release workflow does not pass it.
 
 Production releases are explicit and tag-driven. A full release deploys the selected, already
 verified commit without rerunning the complete client and server suites. The release workflow does
